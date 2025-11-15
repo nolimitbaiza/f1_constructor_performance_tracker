@@ -1,17 +1,14 @@
-# src/pipeline/ingest_f1.py
 from __future__ import annotations
 from pathlib import Path
 import pandas as pd
 
-NA = ["\\N"]  # treat this as missing during CSV load
+NA = ["\\N"]
 ROOT = Path(__file__).resolve().parents[2]
 RAW = ROOT / "data" / "raw"
 BRONZE = ROOT / "data" / "bronze"
 
 BRONZE.mkdir(parents=True, exist_ok=True)
 
-
-# --- loaders (keep only columns we need) ---
 
 # noinspection PyTypeChecker
 def load_races(path: Path) -> pd.DataFrame:

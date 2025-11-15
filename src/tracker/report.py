@@ -4,10 +4,10 @@ import argparse
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# ---------- Paths ----------
+# File paths
 ROOT = Path(__file__).resolve().parents[2]
 GOLD = ROOT / "data" / "gold" / "constructor_monthly.parquet"
-OUTDIR = ROOT / "reports" / "charts"
+OUTDIR = ROOT / "reports"
 OUTDIR.mkdir(parents=True, exist_ok=True)
 
 
