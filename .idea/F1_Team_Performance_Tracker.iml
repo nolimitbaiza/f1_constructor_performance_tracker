@@ -7,5 +7,9 @@
     </content>
     <orderEntry type="jdk" jdkName="Python 3.13 (F1_Team_Performance_Tracker)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="bootstrap" level="application" />
+    <orderEntry type="library" name="font-awesome" level="application" />
+    <orderEntry type="library" name="chart.js" level="application" />
+    <orderEntry type="library" name="PapaParse" level="application" />
   </component>
 </module>

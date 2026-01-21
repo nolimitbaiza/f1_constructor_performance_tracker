@@ -1,30 +1,557 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>F1 Top-10 by Month</title></head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>F1 Constructor Performance Tracker</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #f4f6f9;
+        }
+
+        .card {
+            border: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 350px;
+            width: 100%;
+        }
+
+        /* Floating buttons on chart */
+        .chart-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 10;
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-chart-action {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #ccc;
+            padding: 2px 8px;
+            font-size: 12px;
+        }
+
+        .btn-chart-action:hover {
+            background: #eee;
+        }
+
+        .btn-primary {
+            background-color: #e10600;
+            border-color: #e10600;
+        }
+
+        .dashboard-panel {
+            border: 1px solid #ddd;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            height: 100%;
+        }
+
+        #comparison-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .compare-slot {
+            flex: 1;
+            min-width: 45%;
+        }
+
+        @media (max-width: 1200px) {
+            .compare-slot {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
 <body>
-<label for="m">Month:</label>
-<select id="m"></select>
-<br/><br/>
-<img id="chart" width="900" alt=""/>
+
+<nav class="navbar navbar-dark bg-dark mb-4">
+    <div class="container-fluid">
+        <span class="navbar-brand mb-0 h1"><i class="fas fa-flag-checkered me-2"></i>F1 Constructor Performance Tracker</span>
+        <div class="d-flex" role="group">
+            <button class="btn btn-outline-light me-2 active" id="btn-view-single" onclick="switchView('single')">
+                Analysis
+            </button>
+            <button class="btn btn-outline-light me-2" id="btn-view-compare" onclick="switchView('compare')">Compare
+            </button>
+            <button class="btn btn-outline-light" id="btn-view-history" onclick="switchView('history')">History</button>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid px-4">
+    <div id="loading" class="text-center my-5">
+        <div class="spinner-border text-danger" role="status"></div>
+        <p class="mt-2">Loading F1 Data...</p>
+        <p class="text-muted small">Ensure 'f1_data.csv' is in the folder and local server is running.</p>
+    </div>
+
+    <div id="view-single" class="view-section">
+        <div class="row" id="single-panel-container"></div>
+    </div>
+
+    <div id="view-compare" class="view-section d-none">
+        <div class="row mb-3 text-center">
+            <div class="col">
+                <label class="fw-bold me-2">Comparisons:</label>
+                <div class="btn-group">
+                    <button class="btn btn-outline-secondary" onclick="setCompareCount(2)">2</button>
+                    <button class="btn btn-outline-secondary" onclick="setCompareCount(3)">3</button>
+                    <button class="btn btn-outline-secondary" onclick="setCompareCount(4)">4</button>
+                </div>
+            </div>
+        </div>
+        <div id="comparison-grid"></div>
+    </div>
+
+    <div id="view-history" class="view-section d-none">
+        <div class="card p-4">
+            <div class="row g-3 align-items-end mb-4">
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Start Date</label>
+                    <div class="input-group">
+                        <select class="form-select" id="hist-start-year"></select>
+                        <select class="form-select" id="hist-start-month"></select>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">End Date</label>
+                    <div class="input-group">
+                        <select class="form-select" id="hist-end-year"></select>
+                        <select class="form-select" id="hist-end-month"></select>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Filter Team</label>
+                    <select class="form-select" id="hist-team">
+                        <option value="all">All Teams</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label d-block">&nbsp;</label>
+                    <button class="btn btn-primary w-100" onclick="updateHistoryView()">Show History</button>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="chart-container">
+                        <canvas id="historyChart"></canvas>
+                        <div class="chart-controls">
+                            <button class="btn btn-chart-action" onclick="downloadHistoryCSV()"
+                                    title="Download Data (CSV)"><i class="fas fa-file-csv"></i></button>
+                            <button class="btn btn-chart-action" onclick="downloadChart('historyChart')"
+                                    title="Download Chart (PNG)"><i class="fas fa-image"></i></button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 table-responsive" style="max-height: 350px;">
+                    <table class="table table-sm" id="historyTable">
+                        <thead class="table-dark">
+                        <tr>
+                            <th>Team</th>
+                            <th>Total Pts</th>
+                        </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+
 <script>
-    const months = ['1958-01', '1958-05', '1958-06', '1958-07', '1958-08', '1958-09', '1958-10', '1959-05', '1959-07', '1959-08', '1959-09', '1959-12', '1960-02', '1960-05', '1960-06', '1960-07', '1960-08', '1960-09', '1960-11', '1961-05', '1961-06', '1961-07', '1961-08', '1961-09', '1961-10', '1962-05', '1962-06', '1962-07', '1962-08', '1962-09', '1962-10', '1962-12', '1963-05', '1963-06', '1963-07', '1963-08', '1963-09', '1963-10', '1963-12', '1964-05', '1964-06', '1964-07', '1964-08', '1964-09', '1964-10', '1965-01', '1965-05', '1965-06', '1965-07', '1965-08', '1965-09', '1965-10', '1966-05', '1966-06', '1966-07', '1966-08', '1966-09', '1966-10', '1967-01', '1967-05', '1967-06', '1967-07', '1967-08', '1967-09', '1967-10', '1968-01', '1968-05', '1968-06', '1968-07', '1968-08', '1968-09', '1968-10', '1968-11', '1969-03', '1969-05', '1969-06', '1969-07', '1969-08', '1969-09', '1969-10', '1970-03', '1970-04', '1970-05', '1970-06', '1970-07', '1970-08', '1970-09', '1970-10', '1971-03', '1971-04', '1971-05', '1971-06', '1971-07', '1971-08', '1971-09', '1971-10', '1972-01', '1972-03', '1972-05', '1972-06', '1972-07', '1972-08', '1972-09', '1972-10', '1973-01', '1973-02', '1973-03', '1973-04', '1973-05', '1973-06', '1973-07', '1973-08', '1973-09', '1973-10', '1974-01', '1974-03', '1974-04', '1974-05', '1974-06', '1974-07', '1974-08', '1974-09', '1974-10', '1975-01', '1975-03', '1975-04', '1975-05', '1975-06', '1975-07', '1975-08', '1975-09', '1975-10', '1976-01', '1976-03', '1976-05', '1976-06', '1976-07', '1976-08', '1976-09', '1976-10', '1977-01', '1977-03', '1977-04', '1977-05', '1977-06', '1977-07', '1977-08', '1977-09', '1977-10', '1978-01', '1978-03', '1978-04', '1978-05', '1978-06', '1978-07', '1978-08', '1978-09', '1978-10', '1979-01', '1979-02', '1979-03', '1979-04', '1979-05', '1979-07', '1979-08', '1979-09', '1979-10', '1980-01', '1980-03', '1980-05', '1980-06', '1980-07', '1980-08', '1980-09', '1980-10', '1981-03', '1981-04', '1981-05', '1981-06', '1981-07', '1981-08', '1981-09', '1981-10', '1982-01', '1982-03', '1982-04', '1982-05', '1982-06', '1982-07', '1982-08', '1982-09', '1983-03', '1983-04', '1983-05', '1983-06', '1983-07', '1983-08', '1983-09', '1983-10', '1984-03', '1984-04', '1984-05', '1984-06', '1984-07', '1984-08', '1984-09', '1984-10', '1985-04', '1985-05', '1985-06', '1985-07', '1985-08', '1985-09', '1985-10', '1985-11', '1986-03', '1986-04', '1986-05', '1986-06', '1986-07', '1986-08', '1986-09', '1986-10', '1987-04', '1987-05', '1987-06', '1987-07', '1987-08', '1987-09', '1987-10', '1987-11', '1988-04', '1988-05', '1988-06', '1988-07', '1988-08', '1988-09', '1988-10', '1988-11', '1989-03', '1989-04', '1989-05', '1989-06', '1989-07', '1989-08', '1989-09', '1989-10', '1989-11', '1990-03', '1990-05', '1990-06', '1990-07', '1990-08', '1990-09', '1990-10', '1990-11', '1991-03', '1991-04', '1991-05', '1991-06', '1991-07', '1991-08', '1991-09', '1991-10', '1991-11', '1992-03', '1992-04', '1992-05', '1992-06', '1992-07', '1992-08', '1992-09', '1992-10', '1992-11', '1993-03', '1993-04', '1993-05', '1993-06', '1993-07', '1993-08', '1993-09', '1993-10', '1993-11', '1994-03', '1994-04', '1994-05', '1994-06', '1994-07', '1994-08', '1994-09', '1994-10', '1994-11', '1995-03', '1995-04', '1995-05', '1995-06', '1995-07', '1995-08', '1995-09', '1995-10', '1995-11', '1996-03', '1996-04', '1996-05', '1996-06', '1996-07', '1996-08', '1996-09', '1996-10', '1997-03', '1997-04', '1997-05', '1997-06', '1997-07', '1997-08', '1997-09', '1997-10', '1998-03', '1998-04', '1998-05', '1998-06', '1998-07', '1998-08', '1998-09', '1998-11', '1999-03', '1999-04', '1999-05', '1999-06', '1999-07', '1999-08', '1999-09', '1999-10', '2000-03', '2000-04', '2000-05', '2000-06', '2000-07', '2000-08', '2000-09', '2000-10', '2001-03', '2001-04', '2001-05', '2001-06', '2001-07', '2001-08', '2001-09', '2001-10', '2002-03', '2002-04', '2002-05', '2002-06', '2002-07', '2002-08', '2002-09', '2002-10', '2003-03', '2003-04', '2003-05', '2003-06', '2003-07', '2003-08', '2003-09', '2003-10', '2004-03', '2004-04', '2004-05', '2004-06', '2004-07', '2004-08', '2004-09', '2004-10', '2005-03', '2005-04', '2005-05', '2005-06', '2005-07', '2005-08', '2005-09', '2005-10', '2006-03', '2006-04', '2006-05', '2006-06', '2006-07', '2006-08', '2006-09', '2006-10', '2007-03', '2007-04', '2007-05', '2007-06', '2007-07', '2007-08', '2007-09', '2007-10', '2008-03', '2008-04', '2008-05', '2008-06', '2008-07', '2008-08', '2008-09', '2008-10', '2008-11', '2009-03', '2009-04', '2009-05', '2009-06', '2009-07', '2009-08', '2009-09', '2009-10', '2009-11', '2010-03', '2010-04', '2010-05', '2010-06', '2010-07', '2010-08', '2010-09', '2010-10', '2010-11', '2011-03', '2011-04', '2011-05', '2011-06', '2011-07', '2011-08', '2011-09', '2011-10', '2011-11', '2012-03', '2012-04', '2012-05', '2012-06', '2012-07', '2012-09', '2012-10', '2012-11', '2013-03', '2013-04', '2013-05', '2013-06', '2013-07', '2013-08', '2013-09', '2013-10', '2013-11', '2014-03', '2014-04', '2014-05', '2014-06', '2014-07', '2014-08', '2014-09', '2014-10', '2014-11', '2015-03', '2015-04', '2015-05', '2015-06', '2015-07', '2015-08', '2015-09', '2015-10', '2015-11', '2016-03', '2016-04', '2016-05', '2016-06', '2016-07', '2016-08', '2016-09', '2016-10', '2016-11', '2017-03', '2017-04', '2017-05', '2017-06', '2017-07', '2017-08', '2017-09', '2017-10', '2017-11', '2018-03', '2018-04', '2018-05', '2018-06', '2018-07', '2018-08', '2018-09', '2018-10', '2018-11', '2019-03', '2019-04', '2019-05', '2019-06', '2019-07', '2019-08', '2019-09', '2019-10', '2019-11', '2019-12', '2020-07', '2020-08', '2020-09', '2020-10', '2020-11', '2020-12', '2021-03', '2021-04', '2021-05', '2021-06', '2021-07', '2021-08', '2021-09', '2021-10', '2021-11', '2021-12', '2022-03', '2022-04', '2022-05', '2022-06', '2022-07', '2022-08', '2022-09', '2022-10', '2022-11', '2023-03', '2023-04', '2023-05', '2023-06', '2023-07', '2023-08', '2023-09', '2023-10', '2023-11', '2024-03', '2024-04', '2024-05', '2024-06', '2024-07', '2024-08', '2024-09', '2024-10', '2024-11', '2024-12', '2025-03', '2025-04', '2025-05', '2025-06', '2025-07', '2025-08'];
-    const sel = document.getElementById('m');
-    months.forEach(x => {
-        const o = document.createElement('option');
-        o.value = x;
-        o.textContent = x;
-        sel.appendChild(o);
+    // ================= CONFIGURATION =================
+    const CSV_PATH = 'f1_data.csv';
+    const COL_MAP = {
+        season: 'Season',
+        date: 'Date',
+        constructor: 'ConstructorName',
+        points: 'Points'
+    };
+    // =================================================
+
+    let globalData = [];
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+    // Distinct colors for lines
+    const colorPalette = [
+        '#e10600', '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728',
+        '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
+        '#000000', '#393b79', '#637939', '#8c6d31', '#843c39'
+    ];
+
+    document.addEventListener("DOMContentLoaded", () => {
+        loadData();
     });
 
-    function set(x) {
-        document.getElementById('chart').src = 'charts/top10_' + x + '.png';
-        sel.value = x;
+    // Helper: Make colors transparent
+    function hexToRgba(hex, alpha) {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     }
 
-    set(months[months.length - 1]); // default to latest month
-    sel.onchange = () => set(sel.value);
+    function loadData() {
+        Papa.parse(CSV_PATH, {
+            download: true,
+            header: true,
+            skipEmptyLines: true,
+            dynamicTyping: true,
+            complete: function (results) {
+                if (results.data && results.data.length > 0) {
+                    globalData = results.data.map(row => ({
+                        season: row[COL_MAP.season],
+                        date: row[COL_MAP.date],
+                        constructor: row[COL_MAP.constructor],
+                        points: row[COL_MAP.points]
+                    }));
+
+                    if (globalData[0].season === undefined) {
+                        alert("Error: Columns not found. Check COL_MAP in the code.");
+                    } else {
+                        document.getElementById('loading').classList.add('d-none');
+                        initViews();
+                        populateHistoryControls();
+                    }
+                } else {
+                    alert("CSV file is empty.");
+                }
+            },
+            error: function (err) {
+                console.error(err);
+                alert(`Failed to load CSV: ${err.message}`);
+            }
+        });
+    }
+
+    function initViews() {
+        createDashboardPanel('single-panel-container', 0);
+        setCompareCount(2);
+    }
+
+    function populateHistoryControls() {
+        const teamSelect = document.getElementById('hist-team');
+        const teams = [...new Set(globalData.map(d => d.constructor))].sort();
+        teamSelect.innerHTML = '<option value="all">All Teams</option>' + teams.map(t => `<option value="${t}">${t}</option>`).join('');
+
+        const years = [...new Set(globalData.map(d => d.season))].sort((a, b) => b - a);
+        const yearOptions = years.map(y => `<option value="${y}">${y}</option>`).join('');
+
+        document.getElementById('hist-start-year').innerHTML = yearOptions;
+        document.getElementById('hist-end-year').innerHTML = yearOptions;
+        document.getElementById('hist-start-year').value = years[years.length - 1];
+        document.getElementById('hist-end-year').value = years[0];
+
+        const monthOptions = months.map((m, i) => `<option value="${i}">${m}</option>`).join('');
+        document.getElementById('hist-start-month').innerHTML = monthOptions;
+        document.getElementById('hist-end-month').innerHTML = monthOptions;
+        document.getElementById('hist-end-month').value = "11";
+    }
+
+    function switchView(viewName) {
+        document.querySelectorAll('.view-section').forEach(el => el.classList.add('d-none'));
+        document.querySelectorAll('.btn-outline-light').forEach(el => el.classList.remove('active'));
+        document.getElementById(`view-${viewName}`).classList.remove('d-none');
+        document.getElementById(`btn-view-${viewName}`).classList.add('active');
+    }
+
+    function createDashboardPanel(containerId, uniqueId) {
+        const container = document.getElementById(containerId);
+        const uniqueSeasons = [...new Set(globalData.map(d => d.season))].sort().reverse();
+
+        const html = `
+            <div class="col-12 h-100">
+                <div class="dashboard-panel">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <input type="radio" class="btn-check" name="chartType-${uniqueId}" id="btn-bar-${uniqueId}" autocomplete="off" checked onchange="updatePanel(${uniqueId})">
+                            <label class="btn btn-outline-secondary" for="btn-bar-${uniqueId}"><i class="fas fa-chart-bar"></i> Bar</label>
+
+                            <input type="radio" class="btn-check" name="chartType-${uniqueId}" id="btn-line-${uniqueId}" autocomplete="off" onchange="updatePanel(${uniqueId})">
+                            <label class="btn btn-outline-secondary" for="btn-line-${uniqueId}"><i class="fas fa-chart-line"></i> Line</label>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-3"><select class="form-select" id="season-${uniqueId}" onchange="updatePanel(${uniqueId})">${uniqueSeasons.map(s => `<option value="${s}">${s}</option>`).join('')}</select></div>
+                        <div class="col-md-3"><select class="form-select" id="month-${uniqueId}" onchange="updatePanel(${uniqueId})"><option value="all">All Months</option>${months.map((m, i) => `<option value="${i + 1}">${m}</option>`).join('')}</select></div>
+                        <div class="col-md-4"><select class="form-select" id="team-${uniqueId}" onchange="updatePanel(${uniqueId})"><option value="all">All Teams</option></select></div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="chart-container">
+                                <canvas id="chart-${uniqueId}"></canvas>
+                                <div class="chart-controls">
+                                    <button class="btn btn-chart-action" onclick="downloadCSV(${uniqueId})" title="Download Data (CSV)"><i class="fas fa-file-csv"></i></button>
+                                    <button class="btn btn-chart-action" onclick="downloadChart('chart-${uniqueId}')" title="Download Chart (PNG)"><i class="fas fa-image"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="table-responsive" style="height: 350px; overflow-y: auto;">
+                                <table class="table table-sm text-center" id="table-${uniqueId}"><thead class="table-dark"><tr><th>#</th><th>Constructor</th><th>Pts</th></tr></thead><tbody></tbody></table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        if (containerId === 'comparison-grid') {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'compare-slot';
+            wrapper.innerHTML = html;
+            container.appendChild(wrapper);
+        } else {
+            container.innerHTML = html;
+        }
+        updateTeamDropdown(uniqueId);
+        updatePanel(uniqueId);
+    }
+
+    function setCompareCount(count) {
+        document.getElementById('comparison-grid').innerHTML = '';
+        for (let i = 1; i <= count; i++) createDashboardPanel('comparison-grid', i);
+    }
+
+    function updateTeamDropdown(id) {
+        const season = document.getElementById(`season-${id}`).value;
+        const teamSelect = document.getElementById(`team-${id}`);
+        const teams = [...new Set(globalData.filter(d => d.season == season).map(d => d.constructor))].sort();
+        teamSelect.innerHTML = '<option value="all">All Teams</option>' + teams.map(t => `<option value="${t}">${t}</option>`).join('');
+    }
+
+    function updatePanel(id) {
+        const season = document.getElementById(`season-${id}`).value;
+        const month = document.getElementById(`month-${id}`).value;
+        const team = document.getElementById(`team-${id}`).value;
+        const isLineChart = document.getElementById(`btn-line-${id}`).checked;
+
+        let filtered = globalData.filter(d => d.season == season);
+        if (month !== 'all') filtered = filtered.filter(d => (new Date(d.date).getMonth() + 1) == month);
+
+        const standings = {};
+        filtered.forEach(d => {
+            const t = d.constructor;
+            const p = parseFloat(d.points) || 0;
+            standings[t] = (standings[t] || 0) + p;
+        });
+
+        let sorted = Object.keys(standings).map(k => ({
+            team: k,
+            points: standings[k]
+        })).sort((a, b) => b.points - a.points);
+
+        document.querySelector(`#table-${id} tbody`).innerHTML = sorted.map((s, i) =>
+            `<tr class="${team === s.team ? 'table-warning fw-bold' : ''}"><td>${i + 1}</td><td>${s.team}</td><td>${s.points.toFixed(1)}</td></tr>`
+        ).join('');
+        document.getElementById(`table-${id}`).dataset.csvData = JSON.stringify(sorted);
+
+        const ctx = document.getElementById(`chart-${id}`).getContext('2d');
+        if (window[`chartInstance_${id}`]) window[`chartInstance_${id}`].destroy();
+
+        if (isLineChart) {
+            filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
+            const allDates = [...new Set(filtered.map(d => d.date))];
+
+            let chartTeams = (team !== 'all') ? [team] : Object.keys(standings);
+
+            const datasets = chartTeams.map((t, index) => {
+                const color = colorPalette[index % colorPalette.length];
+                let cumulative = 0;
+                const pointsOverTime = allDates.map(date => {
+                    const entries = filtered.filter(row => row.date === date && row.constructor === t);
+                    const points = entries.reduce((sum, r) => sum + (parseFloat(r.points) || 0), 0);
+                    cumulative += points;
+                    return cumulative;
+                });
+
+                return {
+                    label: t,
+                    data: pointsOverTime,
+                    borderColor: color,
+                    backgroundColor: color,
+                    fill: false,
+                    tension: 0.1,
+                    pointRadius: 4,      // Bigger dots for easier hovering
+                    pointHoverRadius: 7, // Even bigger when hovered
+                    borderWidth: 2.5,    // Slightly thicker lines to catch mouse
+                    originalColor: color
+                };
+            });
+
+            window[`chartInstance_${id}`] = new Chart(ctx, {
+                type: 'line',
+                data: {labels: allDates, datasets: datasets},
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    // --- UPDATED INTERACTION ---
+                    interaction: {
+                        mode: 'dataset',   // Highlights whole line
+                        intersect: true,   // MUST touch the line/dot to trigger
+                        axis: 'xy'
+                    },
+                    plugins: {
+                        title: {display: true, text: `Championship Battle (${season})`},
+                        tooltip: {
+                            mode: 'nearest', // Show tooltip for closest point
+                            intersect: true  // ONLY when touching the dot
+                        }
+                    },
+                    onHover: (event, activeElements, chart) => {
+                        if (!chart.lastHoveredIndex) chart.lastHoveredIndex = -1;
+                        let newIndex = -1;
+                        if (activeElements.length > 0) newIndex = activeElements[0].datasetIndex;
+
+                        if (chart.lastHoveredIndex !== newIndex) {
+                            const ds = chart.data.datasets;
+                            if (newIndex !== -1) {
+                                ds.forEach((d, i) => {
+                                    if (i === newIndex) {
+                                        d.borderColor = d.originalColor;
+                                        d.borderWidth = 5; // Very thick highlight
+                                    } else {
+                                        d.borderColor = hexToRgba(d.originalColor, 0.15); // Fade
+                                        d.borderWidth = 1;
+                                    }
+                                });
+                            } else {
+                                // Reset instantly when leaving line
+                                ds.forEach(d => {
+                                    d.borderColor = d.originalColor;
+                                    d.borderWidth = 2.5;
+                                });
+                            }
+                            chart.update();
+                            chart.lastHoveredIndex = newIndex;
+                        }
+                    }
+                }
+            });
+
+        } else {
+            const chartColors = sorted.map(s => (team !== 'all' && s.team !== team) ? '#e0e0e0' : '#e10600');
+            window[`chartInstance_${id}`] = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sorted.map(s => s.team),
+                    datasets: [{label: 'Points', data: sorted.map(s => s.points), backgroundColor: chartColors}]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {legend: {display: false}, title: {display: true, text: `${season} Standings`}}
+                }
+            });
+        }
+    }
+
+    // --- HISTORY LOGIC ---
+    function updateHistoryView() {
+        const startYear = parseInt(document.getElementById('hist-start-year').value);
+        const startMonth = parseInt(document.getElementById('hist-start-month').value);
+        const endYear = parseInt(document.getElementById('hist-end-year').value);
+        const endMonth = parseInt(document.getElementById('hist-end-month').value);
+        const selectedTeam = document.getElementById('hist-team').value;
+
+        const startDate = new Date(startYear, startMonth, 1);
+        const endDate = new Date(endYear, endMonth + 1, 0);
+
+        if (endDate < startDate) return alert("End date cannot be before start date.");
+
+        let filtered = globalData.filter(d => {
+            const date = new Date(d.date);
+            return date >= startDate && date <= endDate;
+        });
+
+        if (selectedTeam !== 'all') filtered = filtered.filter(d => d.constructor === selectedTeam);
+
+        const standings = {};
+        filtered.forEach(d => standings[d.constructor] = (standings[d.constructor] || 0) + (parseFloat(d.points) || 0));
+
+        let sorted = Object.keys(standings).map(k => ({
+            team: k,
+            points: standings[k]
+        })).sort((a, b) => b.points - a.points);
+        if (selectedTeam === 'all') sorted = sorted.slice(0, 15);
+
+        document.querySelector('#historyTable tbody').innerHTML = sorted.map(s => `<tr><td>${s.team}</td><td>${s.points.toFixed(1)}</td></tr>`).join('');
+        document.getElementById('historyTable').dataset.csvData = JSON.stringify(sorted);
+
+        if (window.historyChartInstance) window.historyChartInstance.destroy();
+
+        const startStr = months[startMonth] + " " + startYear;
+        const endStr = months[endMonth] + " " + endYear;
+
+        window.historyChartInstance = new Chart(document.getElementById('historyChart'), {
+            type: 'bar',
+            data: {
+                labels: sorted.map(s => s.team),
+                datasets: [{label: 'Total Points', data: sorted.map(s => s.points), backgroundColor: '#e10600'}]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {title: {display: true, text: `History: ${startStr} - ${endStr}`}}
+            }
+        });
+    }
+
+    function downloadChart(canvasId) {
+        const canvas = document.getElementById(canvasId);
+        const link = document.createElement('a');
+        link.download = 'f1-chart.png';
+        link.href = canvas.toDataURL();
+        link.click();
+    }
+
+    function downloadCSV(id) {
+        const rawData = document.getElementById(`table-${id}`).dataset.csvData;
+        if (!rawData) return alert("No data to export");
+        triggerCSVDownload(JSON.parse(rawData));
+    }
+
+    function downloadHistoryCSV() {
+        const rawData = document.getElementById('historyTable').dataset.csvData;
+        if (!rawData) return alert("No history data to export. Click 'Show History' first.");
+        triggerCSVDownload(JSON.parse(rawData));
+    }
+
+    function triggerCSVDownload(data) {
+        const csvContent = "data:text/csv;charset=utf-8,"
+            + "Rank,Constructor,Points\n"
+            + data.map((row, index) => `${index + 1},${row.team},${row.points}`).join("\n");
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "f1_data_export.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
 </script>
+
 </body>
 </html>
