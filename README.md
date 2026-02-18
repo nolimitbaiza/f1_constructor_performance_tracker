@@ -1,39 +1,50 @@
-# F1 Constructor Performance by month from 1958 to 2025
+# 🏎️ F1 Constructor Performance Tracker
 
-## About the project
-This project turns raw Formula 1 race results into easy-to-read monthly summaries for each team (constructor). It:
-- reads the raw CSV files,
-- cleans them and adds a month label,
-- adds up each team’s points per month,
-- compares a month to the previous month (Month-over-Month growth),
-- makes a chart that shows the Top 10 teams for any month you pick (e.g. Aug 2012 or Apr 1993).
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Pandas](https://img.shields.io/badge/Pandas-150458?style=for-the-badge&logo=pandas&logoColor=white)
+![Data Science](https://img.shields.io/badge/Data_Science-F7931A?style=for-the-badge&logo=google-analytics&logoColor=white)
 
-You can quickly see which team was strongest in a given month, and how their performance changed compared to the previous month.
+## 🚀 Live Demo
+**Check out the interactive analysis reports here:**
+### [👉 View The Charts](https://nolimitbaiza.github.io/f1_constructor_performance_tracker/index.html)
 
+---
 
-### Examples of charts
-You can find every month (since January 1958) chart preuploaded in reports/charts.
+## 📖 About The Project
 
-Or you can use the [interactive webapp](https://github.com/nolimitbaiza/f1_constructor_performance_tracker/blob/13b233f31aaef891108e371537e3fb9cbac56885/reports/index.html) where you can choose what month performance you want to see. 
+The **F1 Constructor Performance Tracker** is a data analytics project designed to visualize and evaluate the historical dominance and performance trends of Formula 1 teams. 
 
-<img width="1280" height="800" alt="top10_1958-01" src="https://github.com/user-attachments/assets/0974e93f-c6e2-4539-8e79-c542b2ff9fe2" />
-<img width="1280" height="800" alt="top10_2025-08" src="https://github.com/user-attachments/assets/e4fa0a99-f5c5-4269-bbb2-101447e6d834" />
+Formula 1 is a sport defined by data—milliseconds in lap times, pit stop efficiency, and championship points. This tool ingests raw race data to generate a comprehensive HTML report, allowing users to explore how constructor performance has evolved over different eras of the sport.
 
+### 🎯 Key Objectives
+* **Data Ingestion & Cleaning:** Processes complex datasets containing race results, qualifying times, and constructor standings.
+* **Performance Visualization:** transforms raw statistics into intuitive charts (line graphs, bar charts, and heatmaps) to highlight dominance eras (e.g., the Ferrari era vs. the Mercedes hybrid era).
+* **Automated Reporting:** Generates a self-contained HTML dashboard that serves as a static web application for easy sharing and viewing.
 
-### How to run
-You can get all the charts by running 
-```
-python -m scripts.render_all_month
-```
+---
 
-If you want a single month performance chart
-```
-python -m src.tracker.report --month 2012-08 --top 10
-```
-Change the '2012-08' and 'top 10' parts for the desired date and number of teams respectively.
+## 📊 Features
 
+* **Constructor Comparison:** Compare total points, wins, and podium finishes across different seasons.
+* **Season-by-Season Analysis:** Drill down into specific years to see how the championship battle unfolded.
+* **Win Rate Metrics:** Visualizes the win/loss ratio for top constructors to determine dominance.
+* **Interactive UI:** The generated report utilizes interactive elements, allowing users to hover over data points for granular details.
 
-## License & credits
-Dataset: [F1 archive](https://www.kaggle.com/datasets/jtrotman/formula-1-race-data/data) provided in data/raw/ 
+---
 
-License: MIT
+## 🛠️ Technologies Used
+
+* **Language:** Python 3
+* **Data Manipulation:** Pandas, NumPy
+* **Visualization:** Matplotlib, Seaborn
+* **WebApp:** HTML/CSS/JavaScript
+
+---
+
+## 🔮 Future Improvements
+
+I am actively working on transitioning this project from a static analysis tool to a full-stack web application. Future roadmap items include:
+
+1.  **REST API Development:** Building a Flask/FastAPI backend to serve F1 data dynamically.
+2.  **React Frontend:** Creating a modern, responsive dashboard using React.js.
+3.  **Predictive Modeling:** Implementing Machine Learning models (Scikit-Learn) to predict future race outcomes based on historical performance and qualifying data.
