@@ -1,6 +1,6 @@
 # F1 Constructor Performance by month from 1958 to 2025
 
-## What this project does
+## About the project
 This project turns raw Formula 1 race results into easy-to-read monthly summaries for each team (constructor). It:
 - reads the raw CSV files,
 - cleans them and adds a month label,
