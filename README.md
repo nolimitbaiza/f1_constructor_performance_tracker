@@ -5,7 +5,7 @@
 ![Data Science](https://img.shields.io/badge/Data_Science-F7931A?style=for-the-badge&logo=google-analytics&logoColor=white)
 
 ## 🚀 Live Demo
-### [**Check out the interactive analysis reports here:**](https://nolimitbaiza.github.io/f1_constructor_performance_tracker/index.html)
+### [**Take a look at the interactive charts here**](https://nolimitbaiza.github.io/f1_constructor_performance_tracker/index.html)
 
 ---
 
