@@ -1,14 +1,21 @@
+"""Render a Top-K constructor bar chart for one month."""
 from __future__ import annotations
-from pathlib import Path
+
 import argparse
-import pandas as pd
+from pathlib import Path
+
+import matplotlib
+
+matplotlib.use("Agg")  # Charts are only saved to files, so no display is needed.
+
 import matplotlib.pyplot as plt
+import pandas as pd
 
 # File paths
 ROOT = Path(__file__).resolve().parents[2]
 GOLD = ROOT / "data" / "gold" / "constructor_monthly.parquet"
-OUTDIR = ROOT / "reports"
-OUTDIR.mkdir(parents=True, exist_ok=True)
+REPORTS = ROOT / "reports"
+CHARTS = REPORTS / "charts"
 
 
 def load_gold() -> pd.DataFrame:
@@ -44,7 +51,8 @@ def plot_topk_for_month(df: pd.DataFrame, ym: str, k: int = 10) -> Path:
     ax.set_xlabel("Points in Month")
 
     # Saves chart into reports/charts with a consistent name.
-    out = OUTDIR / f"top10_{ym}.png"
+    CHARTS.mkdir(parents=True, exist_ok=True)
+    out = CHARTS / f"top{k}_{ym}.png"
     fig.tight_layout()
     fig.savefig(out, dpi=160)
     plt.close(fig)

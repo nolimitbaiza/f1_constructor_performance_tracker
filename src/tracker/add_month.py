@@ -1,3 +1,4 @@
+"""Bronze layer: add the first-of-month column used for monthly analysis."""
 from __future__ import annotations
 from pathlib import Path
 import pandas as pd
@@ -60,7 +61,7 @@ def main() -> None:
     assert_invariants(before, after)
 
     n_months = after["m"].nunique()
-    print(f"rows={len(after)} months={n_months} range={after['m'].min()} → {after['m'].max()}")
+    print(f"rows={len(after)} months={n_months} range={after['m'].min()} to {after['m'].max()}")
 
     out = save(after)
     print("Saved ->", out)

@@ -1,4 +1,6 @@
+"""Gold layer: monthly constructor points and month-over-month growth, in DuckDB SQL."""
 from __future__ import annotations
+
 from pathlib import Path
 import duckdb
 
@@ -13,9 +15,6 @@ GOLD.parent.mkdir(parents=True, exist_ok=True)
 def main() -> None:
     # Opens an in-memory DuckDB connection
     con = duckdb.connect(database=":memory:")
-
-    # Makes sure the Parquet extension is available
-    con.execute("INSTALL parquet; LOAD parquet;")
 
     # Creates a view over the silver Parquet file so we can query it like a table.
     con.execute(f"""
@@ -63,7 +62,7 @@ def main() -> None:
 
     print("Gold rows:", len(result))
     print("Unique keys:", result[["constructor_id", "m"]].drop_duplicates().shape[0])
-    print("Months:", result["m"].min(), "→", result["m"].max(), "| n_unique:", result["m"].nunique())
+    print("Months:", result["m"].min(), "to", result["m"].max(), "| n_unique:", result["m"].nunique())
     print("Saved ->", GOLD)
 
 

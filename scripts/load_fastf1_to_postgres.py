@@ -1,9 +1,16 @@
+"""Optional: load race results from 2018 onward into PostgreSQL with FastF1.
+
+This loader is separate from the dashboard pipeline in src/tracker. It reads the database settings
+from a .env file (see .env.example).
+"""
+import os
+import time
+from pathlib import Path
+
 import fastf1 as ff1
 import pandas as pd
-from sqlalchemy import create_engine
-import time
-import os
 from dotenv import load_dotenv
+from sqlalchemy import create_engine
 
 load_dotenv()
 DB_HOST = os.getenv("DB_HOST")
@@ -19,7 +26,8 @@ DATABASE_URL = f"postgresql+psycopg2://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{
 engine = create_engine(DATABASE_URL)
 
 # --- FastF1 Cache ---
-ff1.Cache.enable_cache('fastf1_cache')
+Path("fastf1_cache").mkdir(exist_ok=True)
+ff1.Cache.enable_cache("fastf1_cache")
 
 
 def get_race_results(year):
@@ -42,11 +50,9 @@ def get_race_results(year):
             # Gets results DataFrame
             results = session.results
 
-            # --- 💡 YOUR FIX IS HERE 💡 ---
             # Handles data inconsistency where 'ConstructorName' is 'TeamName' in older seasons
             if 'ConstructorName' not in results.columns and 'TeamName' in results.columns:
                 results.rename(columns={'TeamName': 'ConstructorName'}, inplace=True)
-            # --- END OF FIX ---
 
             # Adds metadata from the schedule
             results['Season'] = year
@@ -121,9 +127,9 @@ def main():
             index=False,
             method='multi'
         )
-        print("✅ Data successfully loaded into 'race_results' table.")
+        print("Data successfully loaded into 'race_results' table.")
     except Exception as e:
-        print(f"❌ Error loading data to database: {e}")
+        print(f"Error loading data to database: {e}")
 
 
 if __name__ == "__main__":

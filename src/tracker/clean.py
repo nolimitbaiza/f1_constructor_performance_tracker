@@ -1,3 +1,4 @@
+"""Silver layer: validate, deduplicate and clean race-level points."""
 from __future__ import annotations
 from pathlib import Path
 import pandas as pd
@@ -94,7 +95,7 @@ def main() -> None:
 
     print(f"Loaded from: {inp}")
     print(f"Rows after dedupe: {len(df)}  (dropped={dropped})")
-    print(f"Months: {df['m'].nunique()}  range: {df['m'].min()} → {df['m'].max()}")
+    print(f"Months: {df['m'].nunique()}  range: {df['m'].min()} to {df['m'].max()}")
     for k, v in issues.items():
         print(f"{k}: {v}")
     print("Saved ->", OUT_SILVER)

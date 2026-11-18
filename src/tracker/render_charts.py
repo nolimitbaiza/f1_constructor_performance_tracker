@@ -1,18 +1,8 @@
-import subprocess
-import sys
-from pathlib import Path
-
-import pandas as pd
-
-ROOT = Path(__file__).resolve().parents[1]
-GOLD = ROOT / "data" / "gold" / "constructor_monthly.parquet"
-CHARTS = ROOT / "reports" / "charts"
-REPORTS = ROOT / "reports"
-CHARTS.mkdir(parents=True, exist_ok=True)
-REPORTS.mkdir(parents=True, exist_ok=True)
+"""Render a Top-10 chart for every month, plus a small local page to browse them."""
+from .report import CHARTS, REPORTS, load_gold, plot_topk_for_month
 
 # Load months present in gold
-g = pd.read_parquet(GOLD)
+g = load_gold()
 months = (
     g["m"].dt.strftime("%Y-%m")
     .drop_duplicates()
@@ -20,12 +10,9 @@ months = (
     .tolist()
 )
 
-# Render a Top-10 PNG for every available month using a report module
+# Render a Top-10 PNG for every available month
 for ym in months:
-    subprocess.run(
-        [sys.executable, "-m", "src.tracker.report", "--month", ym, "--top", "10"],
-        check=True
-    )
+    plot_topk_for_month(g, ym, 10)
 
 # Build a tiny dropdown HTML that swaps the image by month
 options_js = ",".join([f"'{m}'" for m in months])

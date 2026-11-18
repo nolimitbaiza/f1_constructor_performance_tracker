@@ -208,3 +208,7 @@ __marimo__/
 
 # FastF1 cache
 fastf1_cache/
+
+# Project output
+fastf1_cache/
+reports/index.html
