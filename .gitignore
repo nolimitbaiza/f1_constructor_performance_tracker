@@ -212,3 +212,6 @@ fastf1_cache/
 # Project output
 fastf1_cache/
 reports/index.html
+
+node_modules/
+.DS_Store
