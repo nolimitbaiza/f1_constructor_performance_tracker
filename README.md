@@ -2,9 +2,7 @@
 
 Explore Formula 1 constructor performance from 1958 through August 2025. Pitwall combines an interactive dashboard, historical constructor profiles, team comparisons, and automatically calculated insights with an Express REST API and Python/PostgreSQL data pipeline.
 
-**[Project demo](https://nolimitbaiza.github.io/f1_constructor_performance_tracker/)** · **[Preview proposed changes](https://bekuuu1.github.io/f1-constructor-performance-tracker/)**
-
-The project demo follows the shared repository’s published version. The preview shows the Pitwall changes under review; the project demo will receive them after the pull request is merged and Pages finishes deploying.
+**[Project demo](https://nolimitbaiza.github.io/f1_constructor_performance_tracker/)**
 
 ![Pitwall constructor dashboard](docs/dashboard.png)
 
@@ -49,8 +47,6 @@ npm start
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
-
-While these changes are under review, run `git switch feature/pitwall-constructor-analytics` after cloning and before `npm ci`. After merge, the default branch will contain the application.
 
 Without `DATABASE_URL`, the API uses `docs/data.json`; no database is required to try the application. Chart.js is vendored with its license. For a frontend-only preview:
 
@@ -115,6 +111,7 @@ Invalid filters return HTTP 400; missing resources return 404. Unavailable stora
 ```text
 docs/
   index.html              Main application
+  logo.svg                Logo and favicon
   app.css                 Responsive styles
   app.js                  Views, controls, charts and exports
   analytics.js            Shared statistics logic
