@@ -1,3 +1,8 @@
+/**
+ * Express application: the REST API under /api plus the static front end
+ * from docs/. Kept separate from index.js so tests can create the app with
+ * a fake data loader and no network port.
+ */
 import express from "express";
 import { fileURLToPath } from "node:url";
 import {
@@ -8,9 +13,14 @@ import {
   csv,
 } from "../docs/analytics.js";
 
+/**
+ * Builds the app. `loadData` is an async function returning the dataset
+ * (from PostgreSQL or the bundled JSON snapshot).
+ */
 export function createApp(loadData) {
   const app = express();
   app.disable("x-powered-by");
+  // Load the dataset once per API request and share it via res.locals.
   app.use("/api", async (req, res, next) => {
     try {
       res.locals.data = await loadData();
@@ -19,6 +29,10 @@ export function createApp(loadData) {
       next(error);
     }
   });
+  /**
+   * Validates the query string and returns { year, ids }.
+   * Invalid input throws an error with status 400 (handled at the bottom).
+   */
   function filters(req, data) {
     const allowed = new Set(["season", "constructors", "format"]);
     if (Object.keys(req.query).some((k) => !allowed.has(k)))
@@ -57,6 +71,8 @@ export function createApp(loadData) {
       throw Object.assign(new Error("format must be csv"), { status: 400 });
     return { year, ids };
   }
+  /* ---------- Routes ---------- */
+
   app.get("/api/health", (req, res) =>
     res.json({
       status: "ok",
@@ -76,6 +92,8 @@ export function createApp(loadData) {
       return res.status(404).json({ error: "Constructor not found" });
     res.json(profile(res.locals.data, Number(req.params.id)));
   });
+  // These four routes share filters and return season statistics as JSON,
+  // or as a CSV download when ?format=csv is given.
   app.get(
     ["/api/dashboard", "/api/standings", "/api/comparison", "/api/analytics"],
     (req, res) => {
@@ -114,22 +132,24 @@ export function createApp(loadData) {
       });
     },
   );
+  // Unknown API routes return JSON 404s instead of the HTML front end.
   app.use("/api", (req, res) =>
     res.status(404).json({ error: "API endpoint not found" }),
   );
+  // Serve the front end (index.html, app.js, data.json, ...).
   app.use(express.static(fileURLToPath(new URL("../docs", import.meta.url))));
+  // Error handler: client errors keep their message; server errors are
+  // logged and replaced with a generic message so no connection details leak.
   app.use((error, req, res, next) => {
     if (res.headersSent) return next(error);
     const status = error.status ?? 500;
     if (status >= 500) console.error(error.message);
-    res
-      .status(status)
-      .json({
-        error:
-          status >= 500
-            ? "Unable to load data. Check the server connection and retry."
-            : error.message,
-      });
+    res.status(status).json({
+      error:
+        status >= 500
+          ? "Unable to load data. Check the server connection and retry."
+          : error.message,
+    });
   });
   return app;
 }

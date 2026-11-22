@@ -8,6 +8,7 @@
       name="description"
       content="Explore Formula 1 constructor standings, compare teams and discover performance across seasons."
     />
+    <link rel="icon" href="logo.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="app.css" />
     <script src="vendor/chart.umd.js" defer></script>
     <script type="module" src="app.js"></script>
@@ -15,12 +16,18 @@
   <body>
     <a class="skip" href="#content">Skip to content</a>
     <aside class="sidebar">
+      <!-- Logo and product name; links back to the overview -->
       <a class="brand" href="#dashboard"
-        ><span class="brand-mark">///</span> PITWALL<span class="brand-sub"
-          >CONSTRUCTOR INTELLIGENCE</span
-        ></a
+        ><img
+          class="brand-logo"
+          src="logo.svg"
+          alt=""
+          width="34"
+          height="34"
+        />PITWALL<span class="brand-sub">CONSTRUCTOR INTELLIGENCE</span></a
       >
       <div class="nav-label">WORKSPACE</div>
+      <!-- Hash-based navigation: app.js renders the view for each route -->
       <nav aria-label="Main navigation">
         <a href="#dashboard" data-page="dashboard"
           ><span aria-hidden="true">▦</span> Overview</a
@@ -51,6 +58,7 @@
         <div class="data-label" id="data-label">Loading archive…</div>
       </header>
       <main id="content" tabindex="-1">
+        <!-- Loading and error messages -->
         <div id="status" role="status" class="status">
           Loading race results…
         </div>
@@ -67,7 +75,12 @@
               Export results <span aria-hidden="true">↓</span>
             </button>
           </section>
-          <section class="filterbar" aria-label="Dashboard filters">
+          <!-- Filters apply to every view; the constructor filter is shown on the overview only -->
+          <form
+            class="filterbar"
+            id="filter-form"
+            aria-label="Dashboard filters"
+          >
             <div class="filters">
               <label>SEASON<select id="season"></select></label
               ><label id="constructor-filter"
@@ -77,7 +90,8 @@
               >
             </div>
             <div id="coverage" class="coverage"></div>
-          </section>
+          </form>
+          <!-- The active view is rendered here by app.js -->
           <div id="view"></div>
           <footer>
             <span

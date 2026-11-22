@@ -1,3 +1,7 @@
+/**
+ * Tests for the shared statistics (docs/analytics.js) and the REST API
+ * (server/app.js), using the real bundled dataset. Run with: npm test
+ */
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";

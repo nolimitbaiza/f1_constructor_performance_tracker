@@ -1,7 +1,15 @@
+/**
+ * Server entry point (npm start).
+ *
+ * With DATABASE_URL set, data is read from PostgreSQL and cached for 30
+ * seconds. Without it, the bundled docs/data.json snapshot is used, so the
+ * app runs without a database.
+ */
 import { readFile } from "node:fs/promises";
 import pg from "pg";
 import { createApp } from "./app.js";
 
+// Connection pool, only created when a database is configured.
 const pool = process.env.DATABASE_URL
   ? new pg.Pool({
       connectionString: process.env.DATABASE_URL,
@@ -14,13 +22,16 @@ const snapshot = pool
   : JSON.parse(
       await readFile(new URL("../docs/data.json", import.meta.url), "utf8"),
     );
+// Most recent database read and when it was taken.
 let cache;
 let cachedAt = 0;
+/** Returns the dataset, from the snapshot, the cache, or a fresh database read. */
 async function loadData() {
   if (!pool) return snapshot;
   if (cache && Date.now() - cachedAt < 30000) return cache;
   const client = await pool.connect();
   try {
+    // Read all tables inside one read-only transaction so they are consistent.
     await client.query("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY");
     const data = {};
     for (const table of [
@@ -53,6 +64,7 @@ async function loadData() {
     client.release();
   }
 }
+// Listen on localhost only; this server is meant for local use.
 const server = createApp(loadData).listen(
   Number(process.env.PORT ?? 3000),
   "127.0.0.1",
@@ -61,6 +73,7 @@ const server = createApp(loadData).listen(
       `Local: http://localhost:${server.address().port} (${pool ? "PostgreSQL" : "bundled snapshot"})`,
     ),
 );
+// Close the server and database pool cleanly on Ctrl+C or shutdown.
 for (const signal of ["SIGINT", "SIGTERM"])
   process.on(signal, () =>
     server.close(async () => {

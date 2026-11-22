@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <title>Pitwall</title>
+  <!-- Three slanted "speed stripes" in the Pitwall accent colour -->
+  <rect width="48" height="48" rx="10" fill="#1f2226"/>
+  <path d="M14 36 22 12h5l-8 24z" fill="#ff533f"/>
+  <path d="M23 36 31 12h5l-8 24z" fill="#ff533f" opacity=".7"/>
+  <path d="M32 36 40 12h3l-8 24z" fill="#ff533f" opacity=".4"/>
+</svg>
