@@ -2,7 +2,9 @@
 
 Explore Formula 1 constructor performance from 1958 through August 2025. Pitwall combines an interactive dashboard, historical constructor profiles, team comparisons, and automatically calculated insights with an Express REST API and Python/PostgreSQL data pipeline.
 
-**[Open the live demo](https://bekuuu1.github.io/f1-constructor-performance-tracker/)**
+**[Project demo](https://nolimitbaiza.github.io/f1_constructor_performance_tracker/)** · **[Preview proposed changes](https://bekuuu1.github.io/f1-constructor-performance-tracker/)**
+
+The project demo follows the shared repository’s published version. The preview shows the Pitwall changes under review; the project demo will receive them after the pull request is merged and Pages finishes deploying.
 
 ![Pitwall constructor dashboard](docs/dashboard.png)
 
@@ -40,13 +42,15 @@ The dataset ends on **August 31, 2025**: 15 of 24 scheduled races in 2025. The a
 Requirements: **Node.js 22+** and **Python 3.10+** for data generation and tests.
 
 ```bash
-git clone https://github.com/bekuuu1/f1-constructor-performance-tracker.git
-cd f1-constructor-performance-tracker
+git clone https://github.com/nolimitbaiza/f1_constructor_performance_tracker.git
+cd f1_constructor_performance_tracker
 npm ci
 npm start
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+While these changes are under review, run `git switch feature/pitwall-constructor-analytics` after cloning and before `npm ci`. After merge, the default branch will contain the application.
 
 Without `DATABASE_URL`, the API uses `docs/data.json`; no database is required to try the application. Chart.js is vendored with its license. For a frontend-only preview:
 
@@ -158,11 +162,16 @@ python -m src.tracker.report --month 2021-12
 
 The monthly pipeline joins raw CSV files, validates race-team records, aggregates monthly points with DuckDB, and exports the CSV consumed by `docs/monthly.html`.
 
-## Attribution and contributions
+## Team and contributions
 
-This project extends [Baizak Isaev's F1 Constructor Performance Tracker](https://github.com/nolimitbaiza/f1_constructor_performance_tracker), distributed under the MIT license. The original source datasets, monthly ETL pipeline, and monthly dashboard are retained. This version adds the Pitwall interface, constructor profiles, comparisons, analytics, Express API, PostgreSQL importer, and automated tests.
+This is a shared project by [nolimitbaiza](https://github.com/nolimitbaiza) and [bekuuu1](https://github.com/bekuuu1), developed in [our shared repository](https://github.com/nolimitbaiza/f1_constructor_performance_tracker).
 
-Maintained in [bekuuu1's repository](https://github.com/bekuuu1/f1-constructor-performance-tracker). Implementation assistance: OpenAI Codex.
+| Collaborator | Contributions |
+| --- | --- |
+| Baizak Isaev (`nolimitbaiza`) | Initial project, source dataset integration, monthly ETL pipeline, and original dashboard. |
+| `bekuuu1` | Pitwall dashboard expansion, constructor profiles, comparisons, analytics, Express API, PostgreSQL importer, tests, and updated documentation, with Codex assistance. |
+
+We submit changes on feature branches and review pull requests before merging into the default `master` branch. The original monthly pipeline and dashboard are retained alongside the new application.
 
 ## License
 
