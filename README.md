@@ -35,6 +35,12 @@ The dataset ends on **August 31, 2025**: 15 of 24 scheduled races in 2025. The a
 | Demo hosting | GitHub Pages |
 | Tests | Node.js test runner, Python unittest |
 
+## Quickest way to try it
+
+Double-click **`Pitwall.html`** in the project folder. It opens in your browser and works offline, with nothing to install: the stylesheet, Chart.js, the dataset and the app code are all bundled into that one file. (The *Monthly explorer* link in it opens the hosted copy online.)
+
+`Pitwall.html` is generated from `docs/`. After changing the app, rebuild it with `npm run standalone`.
+
 ## Run locally
 
 Requirements: **Node.js 22+** and **Python 3.10+** for data generation and tests.
@@ -109,6 +115,8 @@ Invalid filters return HTTP 400; missing resources return 404. Unavailable stora
 ## Project structure
 
 ```text
+Pitwall.html              Self-contained offline version (double-click to open)
+PROJECT_DOCUMENTATION.txt Project documentation for submission
 docs/
   index.html              Main application
   logo.svg                Logo and favicon
@@ -125,6 +133,7 @@ server/
 database/schema.sql       PostgreSQL schema
 scripts/
   build_app_data.py       Snapshot and PostgreSQL importer
+  build_standalone.js     Builds Pitwall.html from docs/
   load_fastf1_to_postgres.py  Original optional FastF1 loader
 src/tracker/              Original monthly ETL and chart generation
 data/raw/                 Source CSV tables

@@ -893,11 +893,16 @@ function fillSeasons() {
 /** Loads the dataset, sets up the filters and event handlers, then renders. */
 async function init() {
   try {
-    // Use the API when the Node server is running, otherwise the static snapshot.
-    let response = await fetch("api/data");
-    if (response.status === 404) response = await fetch("data.json");
-    if (!response.ok) throw new Error("Unable to retrieve the dataset");
-    data = await response.json();
+    if (window.PITWALL_DATA) {
+      // Standalone Pitwall.html: the dataset is embedded in the page.
+      data = window.PITWALL_DATA;
+    } else {
+      // Use the API when the Node server is running, otherwise the static snapshot.
+      let response = await fetch("api/data");
+      if (response.status === 404) response = await fetch("data.json");
+      if (!response.ok) throw new Error("Unable to retrieve the dataset");
+      data = await response.json();
+    }
     if (!data.seasons?.length) throw new Error("No seasons have been imported");
     if (!window.Chart) throw new Error("The chart library could not load");
 

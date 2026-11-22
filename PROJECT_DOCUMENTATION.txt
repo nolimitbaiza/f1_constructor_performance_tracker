@@ -64,11 +64,18 @@ data pipeline.
 
 4. HOW TO RUN THE PROJECT
 -------------------------
+Easiest - open the file (no setup, no internet needed):
+  1. Unzip the project folder.
+  2. Double-click "Pitwall.html" in the main folder.
+  It opens in your default browser (Chrome, Edge, Firefox or Safari).
+  Everything the app needs - styles, charts, data and code - is bundled
+  into this one file, so it works offline.
+
 Live demo (no setup required):
   https://nolimitbaiza.github.io/f1_constructor_performance_tracker/
   Open the link in any modern browser.
 
-Run locally in a browser only (no server):
+Run the source version in a browser (needs a simple local server):
   1. Download or clone the repository.
   2. In the project folder run:  python3 -m http.server 8000 --directory docs
   3. Open http://localhost:8000
@@ -81,6 +88,7 @@ Run locally with the REST API (requires Node.js 22+):
   3. Open http://localhost:3000
 
 No database is required; the app uses the bundled data file by default.
+After changing files in docs/, rebuild Pitwall.html with: npm run standalone
 PostgreSQL is optional - see README.md for the database setup steps.
 
 
