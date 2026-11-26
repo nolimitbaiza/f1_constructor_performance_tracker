@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pitwall case study · Baizak Isaev</title>
+  <meta name="description" content="How Pitwall compares Formula 1 teams across 68 seasons: a staged Python and DuckDB data pipeline, points share instead of raw points, what the numbers show, and who built what.">
+  <meta name="author" content="Baizak Isaev">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Baizak Isaev">
+  <meta property="og:url" content="https://baizakisaev.com/pitwall-case-study">
+  <meta property="og:title" content="Pitwall: case study">
+  <meta property="og:description" content="Comparing Formula 1 teams across 68 seasons, when a win has been worth anywhere from 8 to 25 points.">
+  <meta property="og:image" content="https://baizakisaev.com/assets/og-pitwall.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Pitwall case study: comparing F1 teams across 68 seasons. Ferrari took 50% of all points in 2002; Mercedes won 8 straight titles; McLaren won 2024 by 14 points.">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="canonical" href="https://baizakisaev.com/pitwall-case-study">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#fafaf9" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0c0c0d" media="(prefers-color-scheme: dark)">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230c0a09'/%3E%3Cpath d='M18 5 9 18h6l-2 9 9-13h-6z' fill='%23fff'/%3E%3C/svg%3E">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Pitwall: case study",
+    "url": "https://baizakisaev.com/pitwall-case-study",
+    "image": "https://baizakisaev.com/assets/og-pitwall.png",
+    "author": { "@type": "Person", "name": "Baizak Isaev", "url": "https://baizakisaev.com/" },
+    "about": ["Formula 1", "Data engineering", "Data visualisation"]
+  }
+  </script>
+  <!-- Saved light/dark choice before first paint. -->
+  <script>try{var t=localStorage.getItem("agt-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
+  <link rel="preload" href="assets/fonts/inter-latin-var.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="assets/fonts/jetbrains-mono-latin-500.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="assets/style.css?v=__BUILD__">
+  <link rel="stylesheet" href="assets/home.css?v=__BUILD__">
+</head>
+<body class="about-page case-study">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="container bar">
+      <a class="brand-link" href="./" aria-label="Baizak Isaev, home">
+        <span class="avatar avatar-xs" aria-hidden="true">
+          <span data-initials="BI"></span>
+          <img src="assets/img/profile-64.jpg?v=__BUILD__" srcset="assets/img/profile-64.jpg?v=__BUILD__ 64w, assets/img/profile.jpg?v=__BUILD__ 200w" sizes="28px" width="28" height="28" alt="" onerror="this.remove()">
+        </span>
+        <span class="brand-name">Baizak Isaev</span>
+      </a>
+      <nav aria-label="Site">
+        <a class="nav-link" href="./#work">Work</a>
+        <a class="nav-link nav-case" href="pitwall-case-study" aria-current="page">Case study</a>
+        <a class="nav-link" href="./#about">About</a>
+        <a class="nav-link" href="./#contact">Contact</a>
+        <a class="nav-cta" href="assets/Baizak-Isaev-Resume.pdf?v=__BUILD__" target="_blank" rel="noopener" type="application/pdf">Résumé<span class="sr-only"> (PDF, opens in a new tab)</span></a>
+        <button class="btn btn-icon" id="btn-theme" type="button" aria-label="Switch light / dark" title="Switch light / dark"></button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Section bar with reading progress (home.js shows it after the hero and marks the current section). -->
+  <nav class="cs-subnav" aria-label="Case study sections">
+    <div class="container">
+      <ol>
+        <li><a href="#problem"><span class="idx">01</span>Problem</a></li>
+        <li><a href="#approach"><span class="idx">02</span>Approach</a></li>
+        <li><a href="#findings"><span class="idx">03</span>Findings</a></li>
+        <li><a href="#engineering"><span class="idx">04</span>Engineering</a></li>
+        <li><a href="#team"><span class="idx">05</span>Credits</a></li>
+        <li><a href="#next"><span class="idx">06</span>What's next</a></li>
+      </ol>
+    </div>
+    <div class="cs-progress" aria-hidden="true"><span></span></div>
+  </nav>
+
+  <main id="main" class="container">
+    <article aria-labelledby="cs-title">
+
+      <!-- ================================================================ INTRO
+           Every number on this page comes from the dashboard's own data (docs/data.json in the
+           Pitwall repository, through August 31, 2025) and its statistics (docs/analytics.js). -->
+      <header class="cs-hero">
+        <p class="eyebrow-v2" data-enter style="--i:0"><a href="./#work">Work</a><span aria-hidden="true">/</span>Case study</p>
+        <h1 id="cs-title" data-enter style="--i:1">Pitwall: comparing F1 teams <span class="hl">across 68 seasons</span>.</h1>
+        <p class="hero-lede" data-enter style="--i:2">
+          Every Formula 1 constructors' championship from 1958 to the latest race weekend, in one dashboard. A data
+          pipeline checks and cleans seventy years of race results, and the dashboard compares teams by
+          their share of each season's points, because a win has been worth anywhere from 8 to 25.
+        </p>
+        <div class="hero-ctas" data-enter style="--i:3">
+          <a class="btn-v2 btn-v2--primary" href="pitwall/">
+            Open the dashboard
+            <svg class="arrow" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+          <a class="btn-v2" href="https://github.com/nolimitbaiza/f1_constructor_performance_tracker" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z" fill="currentColor"/></svg>
+            Source on GitHub<span class="sr-only"> (opens in a new tab)</span>
+          </a>
+        </div>
+      </header>
+
+      <!-- The 30-second version, for skimmers. Numbers match the results strip and tables below. -->
+      <section class="cs-tldr" id="summary" aria-labelledby="summary-title" data-reveal>
+        <h2 class="cs-tldr-title" id="summary-title">In 30 seconds</h2>
+        <dl class="cs-tldr-rows">
+          <div><dt>What</dt><dd>An archive and dashboard of every constructors' championship since the first in 1958:
+            1,076 Grands Prix, 12,700+ team race results and 175 teams.</dd></div>
+          <div><dt>How</dt><dd>A Python pipeline in bronze, silver and gold stages (Pandas, Parquet, DuckDB SQL) joins,
+            checks and aggregates the raw results. Teams are compared by their share of each season's points, so
+            different scoring eras line up.</dd></div>
+          <div><dt>Result</dt><dd>Ferrari in 2002 and McLaren in 1988 each took <strong>half of all points</strong>, the
+            most dominant seasons on record. Mercedes' 8 straight titles were the longest run, but at 33% of the
+            points, not the most dominant era.</dd></div>
+          <div><dt>My role</dt><dd>My project from the start: the data integration, the staged pipeline, the first
+            dashboard and the FastF1 loader. A collaborator contributed the current app layer (profiles, comparisons,
+            the Express API and the PostgreSQL importer), which I reviewed and merged.</dd></div>
+        </dl>
+        <div class="cs-skills">
+          <p class="cs-skills-label" id="skills-label">Skills shown</p>
+          <ul class="cs-tags" aria-labelledby="skills-label">
+            <li>Python</li><li>Pandas</li><li>DuckDB</li><li>SQL window functions</li><li>Parquet</li>
+            <li>Data validation</li><li>ETL pipelines</li><li>PostgreSQL</li><li>Chart.js</li>
+            <li>Data analysis</li><li>Git and pull requests</li><li>Code review</li>
+          </ul>
+        </div>
+      </section>
+
+      <figure class="cs-figure cs-figure--bleed" data-reveal>
+        <!-- Wide screens: a loop through five seasons (tools/build_f1_shot.py, home.js), over a still of its
+             first frame. Pitwall is dark-only, so both themes get the same video. -->
+        <div class="cs-figure-media" data-clip>
+          <picture>
+            <source media="(max-width: 640px)" type="image/webp" srcset="assets/img/f1-dashboard-phone.webp?v=__BUILD__" width="1168" height="842">
+            <source media="(max-width: 640px)" srcset="assets/img/f1-dashboard-phone.png?v=__BUILD__" width="1168" height="842">
+            <source type="image/webp" srcset="assets/img/f1-dashboard.webp?v=__BUILD__" width="1956" height="1396">
+            <img src="assets/img/f1-dashboard.png?v=__BUILD__" width="1956" height="1396" loading="lazy" decoding="async" alt="Pitwall's overview for the 2024 season: 2,659 championship points across 10 constructors, the points-progression chart and the top-five standings, led by McLaren on 666 and Ferrari on 652">
+          </picture>
+          <video class="clip-video" muted playsinline loop preload="none" aria-hidden="true" tabindex="-1"
+                 data-src-light="assets/video/pitwall-loop.webm?v=__BUILD__" data-src-dark="assets/video/pitwall-loop.webm?v=__BUILD__"></video>
+          <button class="clip-toggle" type="button" hidden aria-label="Pause the animation" title="Pause the animation">
+            <svg class="i-pause" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M5 3.5v9M11 3.5v9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+            <svg class="i-play" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M5 3.2v9.6L12.6 8z" fill="currentColor"/></svg>
+          </button>
+        </div>
+        <figcaption>The overview in 2024, 1988, 2002, 2016 and 2023: the same view across five eras.</figcaption>
+      </figure>
+
+      <section class="cs-results-strip" aria-label="Headline findings" data-stagger>
+        <div class="cs-stat">
+          <p class="cs-stat-value">50%</p>
+          <p class="cs-stat-label">of all points went to Ferrari in 2002, the most dominant season since 1958</p>
+        </div>
+        <div class="cs-stat">
+          <p class="cs-stat-value">8</p>
+          <p class="cs-stat-label">straight titles for Mercedes, 2014–21: the longest run, at 33% of the points</p>
+        </div>
+        <div class="cs-stat">
+          <p class="cs-stat-value">14 pts</p>
+          <p class="cs-stat-label">McLaren's winning margin over Ferrari in 2024, the closest title by points share</p>
+        </div>
+      </section>
+
+      <!-- ================================================================ 01 PROBLEM -->
+      <section class="section cs-section" id="problem" aria-labelledby="problem-title">
+        <div class="cs-side" data-reveal>
+          <p class="eyebrow-v2"><span class="idx">01</span>Problem</p>
+          <h2 class="section-title-v2" id="problem-title">A win isn't worth what it used to be.</h2>
+        </div>
+        <div class="cs-body" data-reveal style="--i:1">
+          <!-- Baizak's own reason, lightly polished. -->
+          <div class="cs-why">
+            <p class="cs-why-title">Why I built this</p>
+            <p>I'm a Formula 1 fan, and I love learning the history of almost anything. F1 has 75 years of it, recorded
+              race by race, so I wanted to build something that let me explore it: which teams really ruled their era,
+              and how the sport changed around them.</p>
+          </div>
+          <p class="lead">Red Bull scored 860 points in 2023. McLaren scored 199 in 1988. On raw points, Red Bull's
+            season looks four times as strong, yet both teams won all but one race.</p>
+          <p>The rules moved under the numbers. A win was worth 8 points in 1958 and is worth 25 today. Seasons grew
+            from 11 races to 24. Points that once went only to the top five or six now reach tenth, and sprint races add more.
+            A season total from one era means little next to one from another.</p>
+          <ul class="cs-list">
+            <li><strong>Raw points</strong> make every modern team look stronger than every classic one.</li>
+            <li><strong>Titles alone</strong> hide whether a champion cruised or scraped through.</li>
+          </ul>
+          <p>So the question: <em>which teams really dominated their era, and can a dashboard make that comparison
+            fair at a glance?</em></p>
+        </div>
+      </section>
+
+      <!-- ================================================================ 02 APPROACH
+           Pipeline: src/tracker in the Pitwall repository (ingest, add_month, clean, aggregate, export). -->
+      <section class="section cs-section" id="approach" aria-labelledby="approach-title">
+        <div class="cs-side" data-reveal>
+          <p class="eyebrow-v2"><span class="idx">02</span>Approach</p>
+          <h2 class="section-title-v2" id="approach-title">Clean it once, then compare by share.</h2>
+        </div>
+        <div class="cs-body" data-reveal style="--i:1">
+          <h3>A pipeline in stages</h3>
+          <p>The raw data is 14 CSV tables of historical results, about 720,000 rows. I built the pipeline as
+            bronze, silver and gold stages, each saved as Parquet and each checking its own output before the next
+            stage reads it:</p>
+          <ol class="cs-loop" aria-label="The pipeline's stages">
+            <li><span>1</span><b>Bronze:</b>&nbsp;join each team's race result to its date and name; every race–team pair must be unique</li>
+            <li><span>2</span><b>Silver:</b>&nbsp;fix types, remove duplicate rows, blank out impossible values and log every issue</li>
+            <li><span>3</span><b>Gold:</b>&nbsp;DuckDB SQL totals each team's points by month and the change from the month before</li>
+            <li><span>4</span><b>Export:</b>&nbsp;one CSV for the first dashboard, rebuilt with a single command</li>
+          </ol>
+          <pre class="cs-code"><code>LAG(points_m) OVER (PARTITION BY constructor_id ORDER BY m) AS prev_points_m</code></pre>
+          <p>A window function finds each team's previous month in one pass. Where there is no previous month, the
+            change is left empty rather than shown as a false 0%.</p>
+
+          <h3>Points share puts eras side by side</h3>
+          <p>A team's points share is its percentage of all the points scored that season. McLaren's 199 points in 1988
+            were 49.8% of the 400 handed out; Red Bull's 860 in 2023 were 35.0% of 2,458. The scoring system cancels
+            out, and the two seasons become comparable.</p>
+
+          <h3>Rules that keep the numbers honest</h3>
+          <dl class="facts cs-facts">
+            <div class="fact"><dt>Official totals</dt><dd>Standings, not sums<span>Season points come from the official standings, so penalties count.</span></dd></div>
+            <div class="fact"><dt>Exclusions</dt><dd>Counted as zero<span>McLaren's 2007 exclusion shows as EX and scores nothing.</span></dd></div>
+            <div class="fact"><dt>Sprints</dt><dd>Points, not wins<span>Sprint points count toward the title; sprint wins don't count as Grand Prix wins.</span></dd></div>
+            <div class="fact"><dt>Partial seasons</dt><dd>Kept apart<span>2025 is in the archive through August but never counts as a title.</span></dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <!-- ================================================================ 03 FINDINGS -->
+      <section class="section cs-section" id="findings" aria-labelledby="findings-title">
+        <div class="cs-side" data-reveal>
+          <p class="eyebrow-v2"><span class="idx">03</span>Findings</p>
+          <h2 class="section-title-v2" id="findings-title">The longest run wasn't the most dominant.</h2>
+        </div>
+        <div class="cs-body" data-reveal style="--i:1">
+          <p>Measured by points share, here is how the great title runs compare.</p>
+
+          <p class="cs-table-title" id="t-eras">Title runs, by share of all points over the run</p>
+          <div class="cs-table-wrap" role="region" aria-labelledby="t-eras" tabindex="0">
+            <table class="cs-table" aria-labelledby="t-eras">
+              <thead>
+                <tr><th scope="col">Team and years</th><th scope="col">Titles</th><th scope="col">Wins</th><th scope="col">Share of points</th><th scope="col">Next best</th></tr>
+              </thead>
+              <tbody>
+                <tr><th scope="row">McLaren, 1988–91</th><td>4</td><td>39 of 64</td><td>37.4%</td><td>Ferrari, 18.1%</td></tr>
+                <tr><th scope="row">Ferrari, 1999–2004</th><td>6</td><td>63 of 101</td><td>36.4%</td><td>McLaren, 21.6%</td></tr>
+                <tr><th scope="row">Red Bull, 2022–23</th><td>2</td><td>38 of 44</td><td>33.7%</td><td>Ferrari, 20.0%</td></tr>
+                <tr><th scope="row">Mercedes, 2014–21</th><td>8</td><td>111 of 160</td><td>33.4%</td><td>Red Bull, 19.5%</td></tr>
+                <tr><th scope="row">Red Bull, 2010–13</th><td>4</td><td>41 of 77</td><td>28.3%</td><td>Ferrari, 19.6%</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p class="cs-table-title" id="t-seasons">The most dominant single seasons</p>
+          <div class="cs-table-wrap" role="region" aria-labelledby="t-seasons" tabindex="0">
+            <table class="cs-table" aria-labelledby="t-seasons">
+              <thead>
+                <tr><th scope="col">Season</th><th scope="col">Champion</th><th scope="col">Wins</th><th scope="col">Points</th><th scope="col">Share</th></tr>
+              </thead>
+              <tbody>
+                <tr><th scope="row">2002</th><td>Ferrari</td><td>15 of 17</td><td>221</td><td>50.0%</td></tr>
+                <tr><th scope="row">1988</th><td>McLaren</td><td>15 of 16</td><td>199</td><td>49.8%</td></tr>
+                <tr><th scope="row">2007 <span class="cs-note">see below</span></th><td>Ferrari</td><td>9 of 17</td><td>204</td><td>45.8%</td></tr>
+                <tr><th scope="row">1996</th><td>Williams</td><td>12 of 16</td><td>175</td><td>42.1%</td></tr>
+                <tr><th scope="row">2023</th><td>Red Bull</td><td>21 of 22</td><td>860</td><td>35.0%</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>What I took away</h3>
+          <ul class="cs-list">
+            <li><strong>Longest isn't strongest.</strong> Mercedes' eight titles are the record, but McLaren in 1988–91
+              and Ferrari in 1999–2004 took a bigger share of the points while they won.</li>
+            <li><strong>Share narrows the gap between eras, but doesn't close it.</strong> Red Bull won 21 of 22 races in
+              2023 yet took 35% of the points, against McLaren's 49.8% for 15 of 16 in 1988. With points now reaching
+              tenth place, rivals collect more of them.</li>
+            <li><strong>Data rules change the story.</strong> Ferrari's 45.8% in 2007 is high because McLaren, excluded that
+              year, counts as zero. With McLaren's 218 points counted, Ferrari's share would have been 30.8%.</li>
+            <li><strong>The closest fight is recent.</strong> McLaren beat Ferrari by 14 points in 2024, 25.0% of the points
+              against 24.5%: the smallest gap at the top since 1958.</li>
+          </ul>
+          <p class="cs-fine">Seasons 1958–2024 are complete; 2025 runs through August and is left out. In 2024, McLaren
+            scored 666 and Ferrari 652 of the 2,659 points.</p>
+        </div>
+      </section>
+
+      <!-- ================================================================ 04 ENGINEERING -->
+      <section class="section cs-section" id="engineering" aria-labelledby="engineering-title">
+        <div class="cs-side" data-reveal>
+          <p class="eyebrow-v2"><span class="idx">04</span>Engineering</p>
+          <h2 class="section-title-v2" id="engineering-title">A pipeline first, then an app on top.</h2>
+        </div>
+        <div class="cs-body" data-reveal style="--i:1">
+          <h3 id="arch-title">How it fits together</h3>
+          <div class="cs-arch" role="group" aria-labelledby="arch-title">
+            <p class="cs-arch-lane" id="lane-mine">My pipeline: from raw results to the first dashboard</p>
+            <ol class="cs-arch-flow" aria-labelledby="lane-mine">
+              <li><b>Raw tables</b><span>14 CSV tables of results, standings, races and teams, 1950 to 2025</span></li>
+              <li class="is-core"><b>Bronze and silver</b><span>Pandas joins, checks and cleans them into Parquet</span></li>
+              <li><b>Gold</b><span>DuckDB SQL: monthly points and change per team</span></li>
+              <li><b>Monthly dashboard</b><span>Chart.js and Bootstrap, still online as the monthly explorer</span></li>
+            </ol>
+            <p class="cs-arch-lane" id="lane-team">The Pitwall app layer, contributed by a collaborator</p>
+            <ol class="cs-arch-flow" aria-labelledby="lane-team">
+              <li><b>Importer</b><span>Python: checks keys and counts, then loads in one transaction</span></li>
+              <li><b>PostgreSQL</b><span>Teams, seasons, races, results and standings in their own schema</span></li>
+              <li><b>Express API</b><span>Validated filters, clear errors and CSV export</span></li>
+              <li><b>Pitwall</b><span>Overview, profiles, comparisons and insights, on GitHub Pages</span></li>
+            </ol>
+          </div>
+          <dl class="facts cs-facts" data-stagger>
+            <div class="fact"><dt>Checked at every stage</dt><dd>Fails fast<span>The stages assert their columns, types and unique keys, so bad data stops the run instead of reaching a chart.</span></dd></div>
+            <div class="fact"><dt>Repeatable</dt><dd>One command<span>python -m src.tracker.pipeline rebuilds everything from the raw tables. After a cleanup, the rebuilt CSV was byte-identical.</span></dd></div>
+            <div class="fact"><dt>Columnar</dt><dd>Parquet and DuckDB<span>Each stage hands Parquet to the next, and DuckDB runs SQL straight on the files, no database server needed.</span></dd></div>
+            <div class="fact"><dt>Also into PostgreSQL</dt><dd>FastF1 loader<span>An optional loader I wrote pulls race results from 2018 on with FastF1 and writes them to PostgreSQL with SQLAlchemy.</span></dd></div>
+            <div class="fact"><dt>Same numbers everywhere</dt><dd>One statistics module<span>In the app layer, the browser and the API share one module, so a total is identical on screen, in the API and in an export.</span></dd></div>
+            <div class="fact"><dt>Runs without a server</dt><dd>Static demo<span>The live app falls back to a bundled snapshot of the data, so it runs on GitHub Pages with no backend.</span></dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <!-- ================================================================ 05 CREDITS
+           Matches the Pitwall repository's history: the app layer came in one contributed pull request. -->
+      <section class="section cs-section" id="team" aria-labelledby="team-title">
+        <div class="cs-side" data-reveal>
+          <p class="eyebrow-v2"><span class="idx">05</span>Credits</p>
+          <h2 class="section-title-v2" id="team-title">Who built what.</h2>
+        </div>
+        <div class="cs-body" data-reveal style="--i:1">
+          <dl class="cs-features">
+            <div>
+              <dt>Me</dt>
+              <dd>Started the project and built its foundation: the data integration, the bronze, silver and gold
+                pipeline, the original monthly dashboard and the FastF1 loader. Later I gave the pipeline clear stages
+                and a single entry point, and fixed its GitHub Pages site.</dd>
+            </div>
+            <div>
+              <dt>Contributed</dt>
+              <dd>A collaborator added the Pitwall app layer in one pull request: constructor profiles, comparisons and
+                insights, the shared statistics module, the Express API, the PostgreSQL importer and its tests.</dd>
+            </div>
+            <div>
+              <dt>Ownership</dt>
+              <dd>I reviewed and merged that work and maintain the project. The original pipeline and dashboard stay in
+                the repository next to the app.</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
+      <!-- ================================================================ 06 NEXT
+           From "Statistics and limitations" in the Pitwall README. -->
+      <section class="section cs-section" id="next" aria-labelledby="next-title">
+        <div class="cs-side" data-reveal>
+          <p class="eyebrow-v2"><span class="idx">06</span>What's next</p>
+          <h2 class="section-title-v2" id="next-title">What I'd build next.</h2>
+        </div>
+        <div class="cs-body" data-reveal style="--i:1">
+          <h3>Built since the first version</h3>
+          <ul class="cs-list">
+            <li><strong>One scoring system for every era.</strong> A switch re-scores every race with today's points, so
+              eras compare like with like. McLaren's 1988 season goes from 199 to 576 points, and the 1958 title moves from
+              Vanwall to Ferrari, because back then only each team's best car scored.</li>
+            <li><strong>Automatic updates.</strong> After every race weekend, a scheduled job loads the new results from the
+              Jolpica F1 API, rebuilds the data, runs the tests and publishes the update. This site copies it the same day.</li>
+          </ul>
+          <h3>Still on the list</h3>
+          <ol class="cs-next">
+            <li><strong>A hosted API.</strong> The live demo runs on a snapshot. Deploying the Express API with PostgreSQL
+              would put the REST endpoints online too.</li>
+            <li><strong>One pipeline.</strong> My staged pipeline and the app's importer read the same raw tables separately.
+              Feeding both from one pipeline would remove the duplication.</li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- ================================================================ CONTACT -->
+      <section class="section" id="contact" aria-labelledby="contact-title">
+        <div class="contact-v2" data-reveal>
+          <p class="eyebrow-v2">Try it yourself</p>
+          <h2 id="contact-title">Pick your favourite era.</h2>
+          <p class="contact-lede">The dashboard opens on the latest complete season. Choose any season since 1958, compare up to four teams,
+            or export the numbers. Questions about the data or the pipeline? I'd be glad to talk.</p>
+          <div class="contact-actions">
+            <a class="btn-v2 btn-v2--primary" href="pitwall/">
+              Open the dashboard
+              <svg class="arrow" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+            <a class="btn-v2" id="email-link" href="./#contact">
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M4 5h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm0 1 8 7 8-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+              Email me
+            </a>
+            <a class="btn-v2" href="https://github.com/nolimitbaiza/f1_constructor_performance_tracker" target="_blank" rel="noopener">
+              Source on GitHub<span class="sr-only"> (opens in a new tab)</span>
+            </a>
+            <a class="btn-v2" href="ai-grid-trader-case-study">The AI Grid Trader case study</a>
+          </div>
+        </div>
+      </section>
+    </article>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span>© 2026 Baizak Isaev</span>
+      <ul>
+        <li><a href="./">Home</a></li>
+        <li><a href="ai-grid-trader">AI Grid Trader</a></li>
+        <li><a href="https://www.linkedin.com/in/baizakisaev/" target="_blank" rel="noopener">LinkedIn</a></li>
+        <li><a href="https://github.com/nolimitbaiza" target="_blank" rel="noopener">GitHub</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <script src="assets/site.js?v=__BUILD__"></script>
+  <script src="assets/home.js?v=__BUILD__"></script>
+  <!-- Fetch a page as soon as its link is hovered or pressed, so moving around the site feels instant. -->
+  <script type="speculationrules">{"prefetch": [{"where": {"and": [{"href_matches": "/*"}, {"not": {"href_matches": "/assets/*"}}]}, "eagerness": "moderate"}]}</script>
+</body>
+</html>
