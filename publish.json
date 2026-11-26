@@ -1,0 +1,17 @@
+{
+  "description": "Files this repository publishes on baizakisaev.com. The portfolio repository (nolimitbaiza/portfolio) copies them with tools/sync_projects.py: each entry maps a file, or a folder ending in /, from this repository to its address on the site. Shared files (styles, fonts, scripts) come from the portfolio itself.",
+  "publish": [
+    { "from": "site/pitwall-case-study.html", "to": "pitwall-case-study.html" },
+    { "from": "site/assets/", "to": "assets/" },
+    { "from": "docs/index.html", "to": "pitwall/index.html" },
+    { "from": "docs/app.css", "to": "pitwall/app.css" },
+    { "from": "docs/app.js", "to": "pitwall/app.js" },
+    { "from": "docs/analytics.js", "to": "pitwall/analytics.js" },
+    { "from": "docs/logo.svg", "to": "pitwall/logo.svg" },
+    { "from": "docs/data.json", "to": "pitwall/data.json" },
+    { "from": "docs/monthly.html", "to": "pitwall/monthly.html" },
+    { "from": "docs/f1_data.csv", "to": "pitwall/f1_data.csv" },
+    { "from": "docs/vendor/chart.umd.js", "to": "pitwall/vendor/chart.umd.js" },
+    { "from": "docs/vendor/chart.LICENSE.md", "to": "pitwall/vendor/chart.LICENSE.md" }
+  ]
+}
