@@ -60,6 +60,58 @@ test("progression ends at official totals; absent entrants are gaps", () => {
   assert.ok(p.series[2].values.every((v) => v === null));
   assert.equal(insights(data, 2024).length, 3);
 });
+test("2025 rules re-score the 2025 season to exactly the official table", () => {
+  const official = seasonStats(data, 2025);
+  const rescored = seasonStats(data, 2025, [], "rescored");
+  assert.equal(rescored.length, official.length);
+  for (const team of official) {
+    const same = rescored.find((t) => t.id === team.id);
+    assert.equal(same.points, team.points, team.name);
+    assert.equal(same.rank, team.rank, team.name);
+  }
+});
+test("re-scoring compares eras like with like", () => {
+  const [mclaren, ferrari] = seasonStats(data, 1988, [], "rescored");
+  assert.deepEqual(
+    [mclaren.name, mclaren.points, mclaren.rank, mclaren.officialPoints],
+    ["McLaren", 576, 1, 199],
+  );
+  assert.deepEqual([ferrari.name, ferrari.points], ["Ferrari", 239]);
+  // 2023: only the fastest-lap points (no longer awarded) disappear.
+  assert.equal(seasonStats(data, 2023, [9], "rescored")[0].points, 849);
+  // 1958: only each team's best car used to score, so the champion changes.
+  const [champion] = seasonStats(data, 1958, [], "rescored");
+  assert.deepEqual(
+    [champion.name, champion.rank, champion.officialRank],
+    ["Ferrari", 1, 2],
+  );
+  assert.deepEqual(insights(data, 1958, "rescored").at(-1), {
+    title: "With 2025 points",
+    value: "+1 place",
+    detail: "Ferrari would be P1, not P2.",
+  });
+  assert.equal(insights(data, 2025, "rescored").at(-1).value, "Same order");
+});
+test("re-scoring keeps exclusions and leaves out the Indianapolis 500", () => {
+  const teams = seasonStats(data, 2007, [], "rescored");
+  const mclaren = teams.find((t) => t.id === 1);
+  assert.deepEqual([mclaren.points, mclaren.excluded], [0, true]);
+  assert.equal(mclaren.rank, Math.max(...teams.map((t) => t.rank ?? 0)));
+  const p = progression(data, 2007, [1], "rescored");
+  assert.ok(p.series[0].values.every((v) => v === 0));
+  // Teams that only entered the Indy 500 were never in the championship.
+  const indyOnly = seasonStats(data, 1958, [], "rescored").filter(
+    (t) => t.officialRank == null,
+  );
+  assert.ok(indyOnly.length > 0);
+  assert.ok(indyOnly.every((t) => t.points === null && t.rank === null));
+});
+test("re-scored progression adds up race by race", () => {
+  const p = progression(data, 1988, [1], "rescored");
+  // Brazil 1988: Prost won and Senna was disqualified.
+  assert.equal(p.series[0].values[0], 25);
+  assert.equal(p.series[0].values.at(-1), 576);
+});
 test("CSV quotes strings, nulls and spreadsheet formulas safely", () => {
   assert.equal(
     csv([{ name: '=x,"y"', points: null }], ["name", "points"]),
@@ -86,8 +138,23 @@ test("API filters, validation, missing routes and exports", async () => {
       "comparison?constructors=1",
       "dashboard?format=xml",
       "dashboard?other=1",
+      "dashboard?scoring=2025",
+      "constructors/1?scoring=new",
     ])
       assert.equal((await fetch(`${base}/api/${path}`)).status, 400, path);
+    const rescored = await fetch(
+      `${base}/api/standings?season=1988&scoring=rescored`,
+    );
+    const top = (await rescored.json()).teams[0];
+    assert.deepEqual(
+      [top.name, top.points, top.officialPoints],
+      ["McLaren", 576, 199],
+    );
+    const profileResponse = await fetch(
+      `${base}/api/constructors/6?scoring=rescored`,
+    );
+    assert.equal(profileResponse.status, 200);
+    assert.equal((await profileResponse.json()).seasons[0].scoring, "rescored");
     assert.equal((await fetch(`${base}/api/constructors/nope`)).status, 404);
     assert.equal((await fetch(`${base}/api/missing`)).status, 404);
     const csvResponse = await fetch(

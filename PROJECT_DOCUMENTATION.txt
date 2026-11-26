@@ -49,6 +49,8 @@ data pipeline.
   wins, podiums and long-term points share.
 - Insights & analytics: championship title counts, points share per team
   and performance trends over 15 seasons.
+- Two points systems: switch between the official points and every race
+  re-scored with today's (2025) points, to compare different eras fairly.
 - Exports: download the current table as CSV and any chart as PNG.
 - Interactive charts: tooltips and legend buttons to show/hide each team.
 - Responsive layout: works on desktop, tablet and mobile (the sidebar

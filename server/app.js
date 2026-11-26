@@ -11,7 +11,18 @@ import {
   profile,
   insights,
   csv,
+  SCORING,
 } from "../docs/analytics.js";
+
+/** Reads ?scoring= (official by default); anything else is a 400 error. */
+function scoringParam(req) {
+  const value = req.query.scoring ?? "official";
+  if (typeof value !== "string" || !SCORING.includes(value))
+    throw Object.assign(new Error("scoring must be official or rescored"), {
+      status: 400,
+    });
+  return value;
+}
 
 /**
  * Builds the app. `loadData` is an async function returning the dataset
@@ -34,7 +45,7 @@ export function createApp(loadData) {
    * Invalid input throws an error with status 400 (handled at the bottom).
    */
   function filters(req, data) {
-    const allowed = new Set(["season", "constructors", "format"]);
+    const allowed = new Set(["season", "constructors", "format", "scoring"]);
     if (Object.keys(req.query).some((k) => !allowed.has(k)))
       throw Object.assign(new Error("Unknown query parameter"), {
         status: 400,
@@ -69,7 +80,7 @@ export function createApp(loadData) {
       });
     if (req.query.format !== undefined && req.query.format !== "csv")
       throw Object.assign(new Error("format must be csv"), { status: 400 });
-    return { year, ids };
+    return { year, ids, scoring: scoringParam(req) };
   }
   /* ---------- Routes ---------- */
 
@@ -90,7 +101,9 @@ export function createApp(loadData) {
       !res.locals.data.constructors.some((c) => c.id === Number(req.params.id))
     )
       return res.status(404).json({ error: "Constructor not found" });
-    res.json(profile(res.locals.data, Number(req.params.id)));
+    res.json(
+      profile(res.locals.data, Number(req.params.id), scoringParam(req)),
+    );
   });
   // These four routes share filters and return season statistics as JSON,
   // or as a CSV download when ?format=csv is given.
@@ -98,12 +111,12 @@ export function createApp(loadData) {
     ["/api/dashboard", "/api/standings", "/api/comparison", "/api/analytics"],
     (req, res) => {
       const data = res.locals.data;
-      const { year, ids } = filters(req, data);
+      const { year, ids, scoring } = filters(req, data);
       if (req.path === "/api/comparison" && ids.length < 2)
         return res
           .status(400)
           .json({ error: "Select at least two constructors" });
-      const teams = seasonStats(data, year, ids);
+      const teams = seasonStats(data, year, ids, scoring);
       if (req.query.format === "csv")
         return res
           .attachment(`constructors-${year}.csv`)
@@ -118,6 +131,9 @@ export function createApp(loadData) {
               "podiums",
               "races",
               "average",
+              "scoring",
+              "officialRank",
+              "officialPoints",
             ]),
           );
       res.json({
@@ -127,8 +143,9 @@ export function createApp(loadData) {
           data,
           year,
           ids.length ? ids : teams.slice(0, 5).map((t) => t.id),
+          scoring,
         ),
-        insights: insights(data, year),
+        insights: insights(data, year, scoring),
       });
     },
   );

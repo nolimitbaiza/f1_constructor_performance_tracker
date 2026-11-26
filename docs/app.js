@@ -16,6 +16,8 @@ import {
   profile,
   insights,
   csv,
+  SCORING,
+  POINTS_2025,
 } from "./analytics.js";
 
 /* ---------- Small helpers ---------- */
@@ -64,6 +66,34 @@ let page = "dashboard"; // current route
 let selected = null; // constructor IDs chosen on the comparison page
 let charts = []; // Chart.js instances, destroyed before each re-render
 let exportedRows = []; // rows written by the "Export results" CSV button
+let scoring = loadScoring(); // "official" or "rescored" (2025 points system)
+
+/* ---------- Points system ---------- */
+
+/** True when the re-scored (2025 points system) view is selected. */
+const rescored = () => scoring === "rescored";
+
+/** Season statistics for the selected points system. */
+const stats = (y, ids = []) => seasonStats(data, y, ids, scoring);
+
+/** Reads the last chosen points system; storage can be blocked, so default to official. */
+function loadScoring() {
+  try {
+    const saved = localStorage.getItem("pitwall-scoring");
+    return SCORING.includes(saved) ? saved : "official";
+  } catch {
+    return "official";
+  }
+}
+
+/** Remembers the chosen points system for the next visit (if storage is allowed). */
+function saveScoring() {
+  try {
+    localStorage.setItem("pitwall-scoring", scoring);
+  } catch {
+    // Private browsing or blocked storage: the choice just is not remembered.
+  }
+}
 
 /**
  * Returns a constructor's colour. Teams without a fixed colour get a stable
@@ -160,11 +190,27 @@ function standingsRow(t, compact, maxPoints) {
       <td class="rank">${rank}</td>
       <td>${teamName(t)}</td>
       <td class="points">${number(t.points)}</td>
+      ${rescored() ? officialCell(t) : ""}
       <td>${t.wins}</td>
       <td>${t.podiums}</td>
       <td>${t.races}</td>
       <td>${number(t.average)}</td>
     </tr>`;
+}
+
+/**
+ * Table cell with the official position, shown next to re-scored points.
+ * ▲ means the team ranks higher with 2025 points, ▼ lower.
+ */
+function officialCell(t) {
+  if (t.officialRank == null) return "<td>—</td>";
+  if (t.excluded) return "<td>EX</td>";
+  const change = t.officialRank - t.rank;
+  const places = Math.abs(change) === 1 ? "place" : "places";
+  const badge = change
+    ? `<span class="change ${change > 0 ? "up" : "down"}" title="${Math.abs(change)} ${places} ${change > 0 ? "higher" : "lower"} with 2025 points">${change > 0 ? "▲" : "▼"}${Math.abs(change)}</span>`
+    : "";
+  return `<td class="official">P${t.officialRank} ${badge}</td>`;
 }
 
 /** Constructor standings table (compact = top-five summary version). */
@@ -176,6 +222,7 @@ function table(rows, compact = false) {
         "POS",
         "CONSTRUCTOR",
         "POINTS",
+        ...(rescored() ? ["OFFICIAL"] : []),
         "WINS",
         "PODIUMS",
         "RACES",
@@ -190,7 +237,7 @@ function table(rows, compact = false) {
 
 /** Numbered list of automatically calculated observations for the season. */
 function observationList() {
-  const rows = insights(data, year).map(
+  const rows = insights(data, year, scoring).map(
     (item, n) => `
       <article class="insight-row">
         <div class="insight-number">${String(n + 1).padStart(2, "0")}</div>
@@ -287,7 +334,7 @@ function line(id, labels, series) {
 
 /** Cumulative championship points after each round of the selected season. */
 function pointsChart(id, ids) {
-  const p = progression(data, year, ids);
+  const p = progression(data, year, ids, scoring);
   line(
     id,
     p.races.map((r) => `R${r.round} · ${r.name.replace(" Grand Prix", "")}`),
@@ -311,7 +358,7 @@ function barChart(id, labels, label, values, colours, borderColor) {
 /* ---------- View: Overview (#dashboard) ---------- */
 
 function dashboard() {
-  const all = seasonStats(data, year);
+  const all = stats(year);
   const id = $("constructor").value;
   const teams = id === "all" ? all : all.filter((t) => t.id === Number(id));
   const sum = (key) => teams.reduce((s, t) => s + (t[key] ?? 0), 0);
@@ -320,11 +367,13 @@ function dashboard() {
 
   const metrics = [
     metric(
-      "Championship points",
+      rescored() ? "Points · 2025 system" : "Championship points",
       number(sum("points")),
       id === "all"
         ? `Across <em>${all.length} constructors</em>`
-        : "Official championship total",
+        : rescored()
+          ? "Re-scored total"
+          : "Official championship total",
       "◈",
     ),
     metric(
@@ -356,7 +405,7 @@ function dashboard() {
   $("view").innerHTML = `
     <div class="metrics">${metrics.join("")}</div>
     <div class="grid-main">
-      ${chartPanel("progress", "Championship progression", "Cumulative official points after each Grand Prix")}
+      ${chartPanel("progress", "Championship progression", `Cumulative ${rescored() ? "points (2025 system)" : "official points"} after each Grand Prix`)}
       ${panel("Constructor standings", `${year} season · top five constructors`, topFive)}
     </div>
     <div class="bottom-grid">
@@ -419,7 +468,7 @@ function teamCard(t, searching) {
  */
 function profiles(id) {
   if (!id) {
-    const teams = seasonStats(data, year);
+    const teams = stats(year);
     exportedRows = teams;
     $("view").innerHTML = `
       <form id="team-search-form" role="search">
@@ -452,7 +501,7 @@ function profiles(id) {
     return;
   }
 
-  const p = profile(data, id);
+  const p = profile(data, id, scoring);
   if (!p.constructor || !p.seasons.length) {
     $("view").innerHTML =
       '<div class="empty">Constructor not found. <a href="#profiles">Browse constructors</a></div>';
@@ -474,6 +523,7 @@ function profiles(id) {
       <tr>
         <td>${s.season}${s.complete ? "" : " *"}</td>
         <td>${s.excluded ? "EX" : `P${s.rank ?? "—"}`}</td>
+        ${rescored() ? officialCell(s) : ""}
         <td>${number(s.points)}</td>
         <td>${number(s.share)}%</td>
         <td>${s.wins}</td>
@@ -482,7 +532,14 @@ function profiles(id) {
       </tr>`,
   );
   const metrics = [
-    metric("Constructor titles", p.titles, "Completed seasons since 1958", "◈"),
+    metric(
+      rescored() ? "Titles · 2025 system" : "Constructor titles",
+      p.titles,
+      rescored()
+        ? "If every season used today's points"
+        : "Completed seasons since 1958",
+      "◈",
+    ),
     metric(
       "Grand Prix wins",
       number(p.wins),
@@ -513,7 +570,7 @@ function profiles(id) {
     <div class="metrics">${metrics.join("")}</div>
     <div class="bottom-grid">
       ${chartPanel("history", "Through the seasons", "Share of all championship points · %")}
-      ${chartPanel("profile-progress", `${year} points progression`, "Official championship points by round")}
+      ${chartPanel("profile-progress", `${year} points progression`, rescored() ? "Points by round · 2025 system" : "Official championship points by round")}
     </div>
     ${panel(
       "Season-by-season record",
@@ -522,6 +579,7 @@ function profiles(id) {
         [
           "SEASON",
           "POSITION",
+          ...(rescored() ? ["OFFICIAL"] : []),
           "POINTS",
           "SHARE",
           "WINS",
@@ -532,8 +590,11 @@ function profiles(id) {
       ),
     )}
     <div class="callout">
-      * Partial season. Raw points are not directly comparable across scoring eras.
-      Points share provides context; it does not remove every difference between eras.
+      * Partial season. ${
+        rescored()
+          ? "Every season is re-scored with today's points, so the numbers can be compared across eras."
+          : "Raw points are not directly comparable across scoring eras. Points share provides context; switch Points to the 2025 system to compare eras like with like."
+      }
     </div>`;
 
   line(
@@ -561,7 +622,7 @@ function teamOption(t) {
 }
 
 function comparison() {
-  const teams = seasonStats(data, year);
+  const teams = stats(year);
   const validIds = new Set(teams.map((t) => t.id));
   // Default to the top three; drop teams that did not race in a newly chosen season.
   selected =
@@ -599,7 +660,7 @@ function comparison() {
 
   $("compare-content").innerHTML = `
     <div class="bottom-grid">
-      ${chartPanel("comparison-points", "Head to head", "Official championship points by round")}
+      ${chartPanel("comparison-points", "Head to head", rescored() ? "Points by round · 2025 system" : "Official championship points by round")}
       ${chartPanel("comparison-history", "The longer rivalry", "Share of championship points across seasons · %")}
     </div>
     ${panel("Side-by-side results", `${year} season · average classified Grand Prix finish`, table(chosen))}
@@ -611,7 +672,7 @@ function comparison() {
   pointsChart("comparison-points", selected);
 
   // Points share for every season in which at least one chosen team raced.
-  const histories = selected.map((id) => profile(data, id));
+  const histories = selected.map((id) => profile(data, id, scoring));
   const years = data.seasons
     .map((s) => s.year)
     .filter((y) =>
@@ -643,14 +704,14 @@ function comparison() {
 /* ---------- View: Insights & analytics (#insights) ---------- */
 
 function analytics() {
-  const teams = seasonStats(data, year);
+  const teams = stats(year);
   exportedRows = teams;
   const top = teams.slice(0, 5);
 
   // Count constructors' titles across all completed seasons.
   const titles = new Map();
   for (const season of data.seasons.filter((s) => s.complete)) {
-    const winner = seasonStats(data, season.year).find((t) => t.rank === 1);
+    const winner = stats(season.year).find((t) => t.rank === 1);
     if (winner) titles.set(winner.id, (titles.get(winner.id) ?? 0) + 1);
   }
   const champions = [...titles].sort((a, b) => b[1] - a[1]).slice(0, 8);
@@ -658,15 +719,25 @@ function analytics() {
   $("view").innerHTML = `
     <div class="bottom-grid">
       ${panel("The season in focus", "Automatically calculated from the selected season", observationList())}
-      ${chartPanel("dominance", "An era of their own", "Constructor titles · completed seasons since 1958")}
+      ${chartPanel("dominance", "An era of their own", `Constructor titles · completed seasons since 1958${rescored() ? " · 2025 system" : ""}`)}
     </div>
     <div class="bottom-grid">
-      ${chartPanel("share", "Share of the championship", `${year} · percentage of official points`)}
+      ${chartPanel("share", "Share of the championship", `${year} · percentage of ${rescored() ? "points (2025 system)" : "official points"}`)}
       ${chartPanel("trends", "Performance across seasons", "Selected season’s top five teams · points share %")}
     </div>
-    ${panel("Constructor rankings", "Official championship order, with race-level performance alongside it.", table(teams))}
+    ${panel(
+      "Constructor rankings",
+      rescored()
+        ? "Order with today's points, next to the official position."
+        : "Official championship order, with race-level performance alongside it.",
+      table(teams),
+    )}
     <div class="callout">
-      Championship points and ranks use official standings, including adjustments.
+      ${
+        rescored()
+          ? "Points and ranks are re-scored with the 2025 system. Teams excluded from a championship stay excluded. Ties are split by wins, then podiums."
+          : "Championship points and ranks use official standings, including adjustments."
+      }
       Wins and podiums are Grand Prix results; sprint points contribute to championship points.
       Average finish excludes unclassified results. The latest partial season is not counted as a title.
     </div>`;
@@ -698,7 +769,7 @@ function analytics() {
     top.map((t) => ({
       id: t.id,
       name: t.name,
-      values: years.map((y) => seasonStats(data, y, [t.id])[0]?.share ?? null),
+      values: years.map((y) => stats(y, [t.id])[0]?.share ?? null),
     })),
   );
 }
@@ -754,6 +825,10 @@ function render() {
 
   // The constructor filter only applies to the overview.
   $("constructor-filter").hidden = page !== "dashboard";
+  // Points system: keep the radio buttons and the explanation in sync.
+  document.querySelector(`input[name="scoring"][value="${scoring}"]`).checked =
+    true;
+  $("scoring-note").hidden = !rescored();
   const season = data.seasons.find((s) => s.year === year);
   $("coverage").innerHTML = `
     <span class="tag ${season.complete ? "" : "partial"}">${season.complete ? "COMPLETE SEASON" : "PARTIAL SEASON"}</span>
@@ -799,7 +874,11 @@ function exportChart(button) {
   ctx.fillStyle = "#f4f5f7";
   ctx.font = "16px Arial";
   const title = button.closest(".panel").querySelector("h2").textContent;
-  ctx.fillText(`${title} · ${year}`, 20, 25);
+  ctx.fillText(
+    `${title} · ${year}${rescored() ? " · 2025 points system" : ""}`,
+    20,
+    25,
+  );
   ctx.drawImage(chart.canvas, 0, 40);
   ctx.fillStyle = "#a0a6b1";
   ctx.font = "10px Arial";
@@ -842,6 +921,9 @@ function exportCsv() {
     "average",
     "excluded",
     "complete",
+    "scoring",
+    "officialRank",
+    "officialPoints",
   ];
   const blob = new Blob([csv(exportedRows, columns)], {
     type: "text/csv;charset=utf-8",
@@ -864,7 +946,7 @@ function download(url, filename) {
 /** Fills the constructor dropdown with the teams of the selected season. */
 function updateConstructors() {
   const old = $("constructor").value;
-  const teams = seasonStats(data, year);
+  const teams = stats(year);
   $("constructor").innerHTML =
     '<option value="all">All constructors</option>' +
     teams
@@ -929,6 +1011,20 @@ async function init() {
       render();
     });
     $("constructor").addEventListener("change", render);
+    // Points system: official or re-scored with today's (2025) points.
+    // Each points list stays on one line (class "nowrap") so numbers never split.
+    $("scoring-note").innerHTML =
+      `Re-scored with today's points: <strong class="nowrap">${POINTS_2025.grandPrix.join("-")}</strong> ` +
+      `for the top ten in every Grand Prix and <strong class="nowrap">${POINTS_2025.sprint.join("-")}</strong> ` +
+      `in sprints. Every race counts, both cars score, and there is no fastest-lap point. ` +
+      `▲ and ▼ show the change from the official position.`;
+    for (const input of document.querySelectorAll('input[name="scoring"]'))
+      input.addEventListener("change", () => {
+        scoring = input.value;
+        saveScoring();
+        updateConstructors();
+        render();
+      });
     $("export").addEventListener("click", exportCsv);
     window.addEventListener("hashchange", render);
 

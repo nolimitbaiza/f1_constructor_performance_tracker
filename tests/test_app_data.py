@@ -1,5 +1,6 @@
 import copy
 import unittest
+from collections import defaultdict
 from scripts.build_app_data import build, validate, ROOT
 
 
@@ -24,3 +25,35 @@ class DataTests(unittest.TestCase):
         data['results'].append(data['results'][0])
         with self.assertRaises(ValueError):
             validate(data)
+
+    def test_rescored_points_use_the_2025_system(self):
+        races = {r["id"]: r for r in self.data["races"]}
+        totals = defaultdict(float)
+        for row in self.data["results"]:
+            totals[row["raceId"]] += row["rescoredPoints"]
+
+        def race(season, name):
+            return next(
+                r["id"]
+                for r in races.values()
+                if r["season"] == season and r["name"] == name
+            )
+
+        for race_id, total in totals.items():
+            if "Indianapolis" in races[race_id]["name"]:
+                self.assertEqual(total, 0)  # never part of the championship
+            else:
+                self.assertLessEqual(total, 101 + 36)
+        # A full Grand Prix gives 25+18+15+12+10+8+6+4+2+1 = 101 points,
+        # and a sprint weekend adds 8+7+6+5+4+3+2+1 = 36.
+        self.assertEqual(totals[race(2024, "Bahrain Grand Prix")], 101)
+        self.assertEqual(totals[race(2024, "Chinese Grand Prix")], 137)
+        # China 2025: both Ferraris were disqualified from the Grand Prix,
+        # but Hamilton won the sprint (8) and Leclerc was 5th (4).
+        ferrari = next(
+            r
+            for r in self.data["results"]
+            if r["raceId"] == race(2025, "Chinese Grand Prix")
+            and r["constructorId"] == 6
+        )
+        self.assertEqual(ferrari["rescoredPoints"], 12)
