@@ -10,6 +10,19 @@
       content="Explore Formula 1 constructor standings, compare teams and discover performance across seasons."
     />
     <link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjQ4Ij4KICA8dGl0bGU+UGl0d2FsbDwvdGl0bGU+CiAgPCEtLSBUaHJlZSBzbGFudGVkICJzcGVlZCBzdHJpcGVzIiBpbiB0aGUgUGl0d2FsbCBhY2NlbnQgY29sb3VyIC0tPgogIDxyZWN0IHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgcng9IjEwIiBmaWxsPSIjMWYyMjI2Ii8+CiAgPHBhdGggZD0iTTE0IDM2IDIyIDEyaDVsLTggMjR6IiBmaWxsPSIjZmY1MzNmIi8+CiAgPHBhdGggZD0iTTIzIDM2IDMxIDEyaDVsLTggMjR6IiBmaWxsPSIjZmY1MzNmIiBvcGFjaXR5PSIuNyIvPgogIDxwYXRoIGQ9Ik0zMiAzNiA0MCAxMmgzbC04IDI0eiIgZmlsbD0iI2ZmNTMzZiIgb3BhY2l0eT0iLjQiLz4KPC9zdmc+Cg==" type="image/svg+xml" />
+    <!-- Page transitions: on baizakisaev.com every page cross-fades into the next (View Transitions).
+         Pitwall opts in too, inline so it applies from the very first frame; otherwise Chromium
+         cancels the fade the site has started and reports an error. Reduced motion turns it off. -->
+    <style>
+      @view-transition {
+        navigation: auto;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        @view-transition {
+          navigation: none;
+        }
+      }
+    </style>
     <style>
 /* Pitwall stylesheet — dark theme, desktop-first with responsive breakpoints at the end. */
 
