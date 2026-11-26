@@ -17,6 +17,10 @@ Explore Formula 1 constructor performance from 1958 to the latest race weekend. 
 - **Backend:** validated REST filters, structured errors, PostgreSQL storage, and repeatable transactional Python imports.
 - **Monthly explorer:** the original monthly dashboard remains available at `docs/monthly.html`.
 
+## On baizakisaev.com
+
+Pitwall is also published at [baizakisaev.com/pitwall](https://baizakisaev.com/pitwall/), with its case study at [baizakisaev.com/pitwall-case-study](https://baizakisaev.com/pitwall-case-study). The site itself lives in the [portfolio repository](https://github.com/nolimitbaiza/portfolio), which copies the files listed in `publish.json` every hour: the app in `docs/`, and the case study and its pictures in `site/`. The case study uses the portfolio's shared styles, so preview it through the portfolio's local server (see its README). `scripts/build_site_media.py` records the case study's video and screenshots from the live dashboard.
+
 ## Live demo and local backend
 
 The GitHub Pages demo runs entirely in the browser using the bundled dataset. It does **not** host the Node.js server or PostgreSQL. Run the project locally to use the REST API, and configure a database to use PostgreSQL storage.
@@ -140,7 +144,10 @@ database/schema.sql       PostgreSQL schema
 scripts/
   build_app_data.py       Snapshot and PostgreSQL importer
   build_standalone.js     Builds Pitwall.html from docs/
+  build_site_media.py     Records the case study's video and screenshots
   update_results.py       Downloads new results from the Jolpica F1 API
+site/                     Case study and pictures published on baizakisaev.com
+publish.json              What baizakisaev.com copies from this repository
 .github/workflows/
   update-results.yml      Automatic updates after race weekends
   load_fastf1_to_postgres.py  Original optional FastF1 loader
