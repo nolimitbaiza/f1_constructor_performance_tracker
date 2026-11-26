@@ -48,9 +48,18 @@ test("exclusions do not count towards championship share", () => {
 test("profiles exclude partial seasons from title and best/worst calculations", () => {
   assert.equal(profile(data, 6).titles, 16);
   assert.equal(profile(data, 131).titles, 8);
-  assert.equal(profile(data, 1).seasons.at(-1).complete, false);
-  assert.notEqual(profile(data, 1).best.season, 2025);
-  assert.equal(data.seasons.at(-1).races, 15);
+  // Mark 2024 (a McLaren title) as unfinished: it must no longer count.
+  const partial = {
+    ...data,
+    seasons: data.seasons.map((s) =>
+      s.year === 2024 ? { ...s, complete: false } : s,
+    ),
+  };
+  assert.equal(profile(partial, 1).titles, profile(data, 1).titles - 1);
+  assert.notEqual(profile(partial, 1).best.season, 2024);
+  // The newest season is complete only once every scheduled race has results.
+  for (const season of data.seasons)
+    assert.equal(season.complete, season.races === season.scheduled);
 });
 test("progression ends at official totals; absent entrants are gaps", () => {
   const p = progression(data, 2024, [1, 6, 25]);
@@ -60,14 +69,18 @@ test("progression ends at official totals; absent entrants are gaps", () => {
   assert.ok(p.series[2].values.every((v) => v === null));
   assert.equal(insights(data, 2024).length, 3);
 });
-test("2025 rules re-score the 2025 season to exactly the official table", () => {
-  const official = seasonStats(data, 2025);
-  const rescored = seasonStats(data, 2025, [], "rescored");
-  assert.equal(rescored.length, official.length);
-  for (const team of official) {
-    const same = rescored.find((t) => t.id === team.id);
-    assert.equal(same.points, team.points, team.name);
-    assert.equal(same.rank, team.rank, team.name);
+test("2025 rules re-score every season since 2025 to exactly the official table", () => {
+  const seasons = data.seasons.filter((s) => s.year >= 2025);
+  assert.ok(seasons.length >= 1);
+  for (const { year } of seasons) {
+    const official = seasonStats(data, year);
+    const rescored = seasonStats(data, year, [], "rescored");
+    assert.equal(rescored.length, official.length);
+    for (const team of official) {
+      const same = rescored.find((t) => t.id === team.id);
+      assert.equal(same.points, team.points, `${year} ${team.name}`);
+      assert.equal(same.rank, team.rank, `${year} ${team.name}`);
+    }
   }
 });
 test("re-scoring compares eras like with like", () => {
