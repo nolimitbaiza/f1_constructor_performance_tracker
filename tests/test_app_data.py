@@ -10,8 +10,12 @@ class DataTests(unittest.TestCase):
         cls.data = build(ROOT / 'data/raw')
 
     def test_coverage_and_exclusion(self):
-        self.assertEqual(self.data['meta']['through'], '2025-08-31')
-        self.assertEqual(self.data['seasons'][-1]['complete'], False)
+        # The archive grows after every race weekend, so check consistency, not a date.
+        races = self.data['races']
+        self.assertEqual(self.data['meta']['through'], max(r['date'] for r in races))
+        self.assertGreaterEqual(self.data['meta']['through'], '2025-08-31')
+        for season in self.data['seasons']:
+            self.assertEqual(season['complete'], season['races'] == season['scheduled'])
         excluded = [s for s in self.data['standings'] if s['excluded']]
         self.assertTrue(excluded)
         self.assertTrue(all(s['points'] == 0 for s in excluded))

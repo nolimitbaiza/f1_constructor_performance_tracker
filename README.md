@@ -1,6 +1,6 @@
 # Pitwall — F1 Constructor Performance Tracker
 
-Explore Formula 1 constructor performance from 1958 through August 2025. Pitwall combines an interactive dashboard, historical constructor profiles, team comparisons, and automatically calculated insights with an Express REST API and Python/PostgreSQL data pipeline.
+Explore Formula 1 constructor performance from 1958 to the latest race weekend. Pitwall combines an interactive dashboard, historical constructor profiles, team comparisons, and automatically calculated insights with an Express REST API and Python/PostgreSQL data pipeline.
 
 **[Project demo](https://nolimitbaiza.github.io/f1_constructor_performance_tracker/)**
 
@@ -21,7 +21,7 @@ Explore Formula 1 constructor performance from 1958 through August 2025. Pitwall
 
 The GitHub Pages demo runs entirely in the browser using the bundled dataset. It does **not** host the Node.js server or PostgreSQL. Run the project locally to use the REST API, and configure a database to use PostgreSQL storage.
 
-The dataset ends on **August 31, 2025**: 15 of 24 scheduled races in 2025. The app defaults to 2024, the latest complete season. This is a historical archive, not a live feed.
+The data is updated automatically after every race weekend (see [Automatic updates](#automatic-updates)). The app opens on the latest complete season; a season still in progress is marked as partial.
 
 ## Technologies
 
@@ -81,20 +81,24 @@ The importer creates a separate `f1` schema containing constructors, seasons, ra
 
 The API reads a consistent database snapshot and caches it for 30 seconds. Database failures return an error instead of falling back silently to the bundled snapshot. The server binds to loopback for local use.
 
-## Update data and run checks
+## Automatic updates
 
-Replace the corresponding CSV exports in `data/raw/` from the same source, then run:
+A GitHub Actions workflow (`.github/workflows/update-results.yml`) runs on Monday and Wednesday mornings (UTC). It downloads new results from the [Jolpica F1 API](https://github.com/jolpica/jolpica-f1), the community successor to the Ergast API that `data/raw/` came from. It then rebuilds `docs/data.json`, `Pitwall.html` and the monthly explorer's CSV, runs the tests and commits the update, which GitHub Pages publishes. When there are no new results, nothing is committed. To run it by hand: **Actions → Update race results → Run workflow** (optionally naming seasons).
+
+Each run refreshes whole seasons — by default from the newest season in the data to the current one — so later corrections such as post-race penalties are picked up too. A round is added only once both its results and its championship standings are published. Rows of other seasons stay exactly as they are. Lap times and pit stops are not downloaded; the app does not use them.
+
+To update locally:
 
 ```bash
+npm run update
 npm run data
+npm run standalone
 npm test
 ```
 
-The importer validates keys and result counts before atomically replacing `docs/data.json`. Restart a snapshot-mode server after updating the file. To update PostgreSQL too, rerun the importer with `--database`.
+`npm run update` takes optional seasons: `npm run update -- --seasons 2025 2026`. The importer validates keys and result counts before atomically replacing `docs/data.json`. Restart a snapshot-mode server after updating the file. To update PostgreSQL too, rerun the importer with `--database`. The original optional FastF1 loader is separate and does not populate the application's `f1` schema.
 
-The importer does not automatically download new races. The original optional FastF1 loader is separate and does not populate the application's `f1` schema.
-
-Tests cover known season totals, exclusions, partial seasons, progression, CSV escaping, API validation, missing endpoints, storage failures, and ETL integrity. Desktop/mobile flows, CSV/PNG downloads, static hosting, and repeated PostgreSQL imports have also been checked locally.
+Tests cover known season totals, exclusions, partial seasons, re-scoring, the results updater (against a fake API), progression, CSV escaping, API validation, missing endpoints, storage failures, and ETL integrity. Desktop/mobile flows, CSV/PNG downloads, static hosting, and repeated PostgreSQL imports have also been checked locally.
 
 ## API
 
@@ -136,6 +140,9 @@ database/schema.sql       PostgreSQL schema
 scripts/
   build_app_data.py       Snapshot and PostgreSQL importer
   build_standalone.js     Builds Pitwall.html from docs/
+  update_results.py       Downloads new results from the Jolpica F1 API
+.github/workflows/
+  update-results.yml      Automatic updates after race weekends
   load_fastf1_to_postgres.py  Original optional FastF1 loader
 src/tracker/              Original monthly ETL and chart generation
 data/raw/                 Source CSV tables

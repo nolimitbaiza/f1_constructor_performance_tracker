@@ -5,6 +5,7 @@
   "scripts": {
     "start": "node --env-file-if-exists=.env server/index.js",
     "dev": "node --env-file-if-exists=.env --watch server/index.js",
+    "update": "python3 scripts/update_results.py",
     "data": "python3 scripts/build_app_data.py",
     "standalone": "node scripts/build_standalone.js",
     "test": "node --test tests/*.test.js && python3 -m unittest discover -s tests -p 'test_*.py'"

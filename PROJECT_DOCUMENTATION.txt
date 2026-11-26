@@ -7,8 +7,8 @@ Name: Pitwall - F1 Constructor Performance Tracker
 
 What it does:
 An interactive web dashboard for exploring Formula 1 constructor (team)
-performance from 1958, the first constructors' championship season, through
-August 2025. Users can pick a season, view official standings and points
+performance from 1958, the first constructors' championship season, to the
+latest race weekend. Users can pick a season, view official standings and points
 progression, open a profile for any team in F1 history, compare two to four
 teams side by side, and read insights calculated from the race data. Results
 can be exported as CSV files and charts as PNG images.
@@ -51,6 +51,8 @@ data pipeline.
   and performance trends over 15 seasons.
 - Two points systems: switch between the official points and every race
   re-scored with today's (2025) points, to compare different eras fairly.
+- Automatic updates: new race results are downloaded after every race
+  weekend, so the data stays current without any manual work.
 - Exports: download the current table as CSV and any chart as PNG.
 - Interactive charts: tooltips and legend buttons to show/hide each team.
 - Responsive layout: works on desktop, tablet and mobile (the sidebar
@@ -141,7 +143,6 @@ What we learned:
 
 8. FUTURE IMPROVEMENTS
 ----------------------
-- Automatic data updates after each race weekend
 - Driver statistics alongside constructor statistics
 - Light theme toggle
 - Circuit-by-circuit and head-to-head race results

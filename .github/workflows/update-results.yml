@@ -1,0 +1,74 @@
+# Keeps Pitwall's data current. After each race weekend it downloads new results from the
+# Jolpica F1 API (scripts/update_results.py), rebuilds the app data, the offline Pitwall.html
+# and the monthly explorer's CSV, runs the tests and commits the update. GitHub Pages then
+# publishes it, and baizakisaev.com/pitwall copies it on its next sync.
+# When the API has nothing new, nothing is committed.
+# Run it by hand from the Actions tab ("Update race results" > "Run workflow").
+name: Update race results
+
+on:
+  schedule:
+    - cron: "41 4 * * 1" # Mondays 04:41 UTC, the morning after a Grand Prix
+    - cron: "41 4 * * 3" # Wednesdays: late results changes and penalties
+  workflow_dispatch:
+    inputs:
+      seasons:
+        description: "Seasons to refresh, e.g. 2025 2026 (empty: newest season in the data to the current one)"
+        required: false
+
+permissions:
+  contents: write
+
+concurrency: update-results
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Download new results
+        id: download
+        env:
+          SEASONS: ${{ inputs.seasons }}
+        run: |
+          # Seasons are passed as separate numbers; the script rejects anything else.
+          python scripts/update_results.py ${SEASONS:+--seasons $SEASONS}
+          if git diff --quiet data/raw; then
+            echo "No new results."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Rebuild app data, offline page and monthly explorer
+        if: steps.download.outputs.changed == 'true'
+        run: |
+          npm ci
+          pip install -r requirements.txt
+          python scripts/build_app_data.py
+          npm run standalone
+          python -m src.tracker.pipeline
+
+      - name: Tests on the new data
+        if: steps.download.outputs.changed == 'true'
+        run: npm test
+
+      - name: Publish
+        if: steps.download.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data docs Pitwall.html
+          THROUGH=$(python -c "import json; print(json.load(open('docs/data.json'))['meta']['through'])")
+          git commit -m "Update race results through $THROUGH"
+          git push

@@ -996,8 +996,9 @@ async function init() {
     $("data-label").textContent = `ARCHIVE THROUGH ${data.meta.through}`;
     $("archive-range").textContent =
       `${data.seasons[0].year} — ${data.seasons.at(-1).year}`;
+    const latest = data.seasons.at(-1);
     $("footer-coverage").textContent =
-      `Results through ${data.meta.through} · Latest season partial · Not live data`;
+      `Results through ${data.meta.through} · ${latest.complete ? `${latest.year} season complete` : `${latest.year}: ${latest.races} of ${latest.scheduled} rounds`} · Updated after each race weekend`;
     updateConstructors();
 
     // Filter form: changes apply immediately, so it is never submitted.
