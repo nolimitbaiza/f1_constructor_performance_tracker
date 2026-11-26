@@ -1,0 +1,150 @@
+PITWALL - F1 CONSTRUCTOR PERFORMANCE TRACKER
+============================================
+
+1. PROJECT TITLE & DESCRIPTION
+------------------------------
+Name: Pitwall - F1 Constructor Performance Tracker
+
+What it does:
+An interactive web dashboard for exploring Formula 1 constructor (team)
+performance from 1958, the first constructors' championship season, through
+August 2025. Users can pick a season, view official standings and points
+progression, open a profile for any team in F1 history, compare two to four
+teams side by side, and read insights calculated from the race data. Results
+can be exported as CSV files and charts as PNG images.
+
+Why we built it:
+F1 history is spread across large tables of race results that are hard to
+read on their own. We wanted to turn that data into something visual and easy
+to explore, so anyone can see how teams rose and fell across eras. It also
+gave us a real dataset to practise front-end development (HTML, CSS,
+JavaScript, charts, responsive design) together with a small back end and a
+data pipeline.
+
+
+2. TECH STACK USED
+------------------
+- HTML5 (semantic layout, forms, tables, canvas)
+- CSS3 (custom properties, Flexbox, Grid, media queries)
+- JavaScript (ES modules, DOM manipulation, Fetch API, Blob downloads)
+- Chart.js (line and bar charts)
+- Node.js + Express (REST API)
+- PostgreSQL + node-postgres (optional database storage)
+- Python (data import script; Pandas, DuckDB, PyArrow and Matplotlib for
+  the original monthly pipeline)
+- Bootstrap + PapaParse (original monthly explorer page)
+- Node.js test runner and Python unittest (automated tests)
+- Git, GitHub and GitHub Pages (version control and hosting)
+
+
+3. FEATURES
+-----------
+- Overview dashboard: season and constructor filters, headline metrics
+  (points, wins, podiums, races), championship progression chart, standings
+  table and automatically generated season observations.
+- Constructor profiles: live search across every team in the archive and a
+  profile page per team with titles, wins, podiums, best/worst seasons,
+  history charts and a season-by-season table.
+- Team comparison: choose 2-4 teams with checkboxes to compare points,
+  wins, podiums and long-term points share.
+- Insights & analytics: championship title counts, points share per team
+  and performance trends over 15 seasons.
+- Two points systems: switch between the official points and every race
+  re-scored with today's (2025) points, to compare different eras fairly.
+- Exports: download the current table as CSV and any chart as PNG.
+- Interactive charts: tooltips and legend buttons to show/hide each team.
+- Responsive layout: works on desktop, tablet and mobile (the sidebar
+  becomes a top menu on small screens).
+- Accessibility: skip link, keyboard focus styles, labelled forms and
+  charts, reduced-motion support.
+- Shareable URLs: each page and team profile has its own link
+  (e.g. #profiles/6 for Ferrari).
+- REST API: endpoints for seasons, constructors, standings, comparisons and
+  analytics, with input validation and clear error messages.
+- Monthly explorer: the original monthly dashboard (monthly.html).
+
+
+4. HOW TO RUN THE PROJECT
+-------------------------
+Easiest - open the file (no setup, no internet needed):
+  1. Unzip the project folder.
+  2. Double-click "Pitwall.html" in the main folder.
+  It opens in your default browser (Chrome, Edge, Firefox or Safari).
+  Everything the app needs - styles, charts, data and code - is bundled
+  into this one file, so it works offline.
+
+Live demo (no setup required):
+  https://nolimitbaiza.github.io/f1_constructor_performance_tracker/
+  Open the link in any modern browser.
+
+Run the source version in a browser (needs a simple local server):
+  1. Download or clone the repository.
+  2. In the project folder run:  python3 -m http.server 8000 --directory docs
+  3. Open http://localhost:8000
+  (A simple local server is needed because the browser loads the data file
+  and JavaScript modules, which does not work from file://.)
+
+Run locally with the REST API (requires Node.js 22+):
+  1. npm ci
+  2. npm start
+  3. Open http://localhost:3000
+
+No database is required; the app uses the bundled data file by default.
+After changing files in docs/, rebuild Pitwall.html with: npm run standalone
+PostgreSQL is optional - see README.md for the database setup steps.
+
+
+5. SCREENSHOTS
+--------------
+Screenshots are included in the repository:
+- docs/dashboard.png             Overview: metrics, progression chart, standings
+- docs/screenshots/profile.png   Constructor profile (Ferrari)
+- docs/screenshots/compare.png   Team comparison form and charts
+- docs/screenshots/insights.png  Insights & analytics page
+- docs/screenshots/mobile.png    Mobile layout
+
+
+6. TEAM MEMBERS
+---------------
+- Member 1 - Project setup, data sourcing and cleaning, monthly data
+  pipeline (Python) and the original monthly dashboard.
+- Member 2 - Main Pitwall interface (HTML/CSS/JavaScript), charts,
+  constructor profiles, comparison and insights pages, REST API, PostgreSQL
+  import and tests.
+- Both - Code reviews through pull requests, testing and documentation.
+
+
+7. CHALLENGES & LEARNING
+------------------------
+Challenges:
+- Getting the numbers right: sprint races, disqualified (excluded) teams and
+  the unfinished 2025 season all needed special handling so totals matched
+  the official standings.
+- Comparing eras fairly: F1 points systems changed many times, so we added
+  "points share" to make seasons more comparable.
+- Making charts and wide tables usable on small phone screens.
+- Making the same app work both on GitHub Pages (static files only) and
+  with a Node.js server and database.
+- Keeping the code readable as the JavaScript grew.
+
+What we learned:
+- DOM manipulation and building pages dynamically with JavaScript
+- ES modules and sharing one statistics module between browser and server
+- Fetching data with the Fetch API and handling errors and fallbacks
+- Data visualisation with Chart.js
+- Responsive design with CSS Grid, Flexbox and media queries
+- Accessible forms, tables and navigation
+- Building and validating a REST API with Express
+- Cleaning and validating real-world data with Python
+- Team collaboration with Git branches and pull requests
+
+
+8. FUTURE IMPROVEMENTS
+----------------------
+- Automatic data updates after each race weekend
+- Driver statistics alongside constructor statistics
+- Light theme toggle
+- Circuit-by-circuit and head-to-head race results
+- Merging renamed teams into one history (e.g. Toleman -> Benetton ->
+  Renault -> Alpine)
+- Deploying the API and database online, not just the static demo

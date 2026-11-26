@@ -88,9 +88,28 @@
                   <option value="all">All constructors</option>
                 </select></label
               >
+              <!-- Points system: official, or every race re-scored with 2025 points -->
+              <fieldset class="scoring-toggle">
+                <legend>POINTS</legend>
+                <div class="segments">
+                  <label
+                    ><input
+                      type="radio"
+                      name="scoring"
+                      value="official"
+                      checked
+                    />Official</label
+                  ><label
+                    ><input type="radio" name="scoring" value="rescored" />2025
+                    system</label
+                  >
+                </div>
+              </fieldset>
             </div>
             <div id="coverage" class="coverage"></div>
           </form>
+          <!-- Explains the re-scored points; shown only when "2025 system" is selected -->
+          <p id="scoring-note" class="scoring-note" hidden></p>
           <!-- The active view is rendered here by app.js -->
           <div id="view"></div>
           <footer>

@@ -12,6 +12,7 @@ Explore Formula 1 constructor performance from 1958 through August 2025. Pitwall
 - **Constructor profiles:** searchable teams, individual profile URLs, historical totals, season-by-season records, and best/worst complete seasons.
 - **Comparison:** compare two to four constructors using points, wins, podiums, average finishes, and historical points shares. Export results as CSV and charts as PNG.
 - **Insights:** constructor rankings, championship title counts, points shares, and observations calculated from each season.
+- **Two points systems:** switch between the official points and every race re-scored with today's (2025) system, to compare eras like with like. Re-scored tables show each team's official position and how far it moved.
 - **Responsive interface:** desktop and mobile layouts, keyboard-accessible controls, labelled charts, and readable data tables.
 - **Backend:** validated REST filters, structured errors, PostgreSQL storage, and repeatable transactional Python imports.
 - **Monthly explorer:** the original monthly dashboard remains available at `docs/monthly.html`.
@@ -34,6 +35,12 @@ The dataset ends on **August 31, 2025**: 15 of 24 scheduled races in 2025. The a
 | Original monthly UI | Bootstrap, PapaParse, Chart.js |
 | Demo hosting | GitHub Pages |
 | Tests | Node.js test runner, Python unittest |
+
+## Quickest way to try it
+
+Double-click **`Pitwall.html`** in the project folder. It opens in your browser and works offline, with nothing to install: the stylesheet, Chart.js, the dataset and the app code are all bundled into that one file. (The *Monthly explorer* link in it opens the hosted copy online.)
+
+`Pitwall.html` is generated from `docs/`. After changing the app, rebuild it with `npm run standalone`.
 
 ## Run locally
 
@@ -101,14 +108,17 @@ Tests cover known season totals, exclusions, partial seasons, progression, CSV e
 | `/api/standings?season=2024` | Constructor rankings |
 | `/api/comparison?season=2024&constructors=1,6` | Compare at least two constructors |
 | `/api/analytics?season=2024` | Rankings, progression and observations |
+| `/api/standings?season=1988&scoring=rescored` | Any season route or `/api/constructors/:id` re-scored with 2025 points |
 | `/api/comparison?season=2024&constructors=1,6&format=csv` | Export comparison results |
 | `/api/data` | Complete dataset used by the frontend |
 
-Invalid filters return HTTP 400; missing resources return 404. Unavailable storage returns 500 without exposing connection details.
+`scoring` is `official` (default) or `rescored`. Invalid filters return HTTP 400; missing resources return 404. Unavailable storage returns 500 without exposing connection details.
 
 ## Project structure
 
 ```text
+Pitwall.html              Self-contained offline version (double-click to open)
+PROJECT_DOCUMENTATION.txt Project documentation for submission
 docs/
   index.html              Main application
   logo.svg                Logo and favicon
@@ -125,6 +135,7 @@ server/
 database/schema.sql       PostgreSQL schema
 scripts/
   build_app_data.py       Snapshot and PostgreSQL importer
+  build_standalone.js     Builds Pitwall.html from docs/
   load_fastf1_to_postgres.py  Original optional FastF1 loader
 src/tracker/              Original monthly ETL and chart generation
 data/raw/                 Source CSV tables
@@ -146,7 +157,8 @@ tests/
 - Average finish uses classified `position` values only; unclassified entries are excluded.
 - Race appearances count distinct constructor/race pairs, not driver starts.
 - Best/worst seasons use championship position, then points share. Incomplete seasons are excluded from those rankings and title counts.
-- Raw points are not directly comparable across scoring eras. Points share provides context but does not remove every difference between eras.
+- Raw official points are not directly comparable across scoring eras. Points share provides context, and the 2025 points system removes the scoring differences.
+- **Re-scored points (2025 system):** 25-18-15-12-10-8-6-4-2-1 for the top ten in every Grand Prix and 8-7-6-5-4-3-2-1 for the top eight in sprints, with no fastest-lap point. Every race counts and both cars score (older rules often counted only a team's best car or best results). Points follow the official classification, including disqualifications; shortened races still score full points. A shared car scores once. The Indianapolis 500 (1958–1960) stays out, as it never counted for constructors. Teams excluded from a championship stay excluded. Ties are split by wins, then podiums, then the official position. Re-scoring 2025 reproduces the official 2025 standings exactly.
 - Renamed constructors remain separate source identities. Completeness is measured against the supplied race schedule.
 
 ## Original monthly pipeline

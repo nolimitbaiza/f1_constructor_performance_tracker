@@ -19,6 +19,18 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
+# Today's (2025) points system, used to re-score every race so that seasons
+# from different eras can be compared like with like. Points go to the top
+# ten in a Grand Prix and the top eight in a sprint. Since 2025 there is no
+# extra point for the fastest lap.
+GP_POINTS_2025 = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1]
+SPRINT_POINTS_2025 = [8, 7, 6, 5, 4, 3, 2, 1]
+
+
+def points_for(position, table):
+    """Points for a finishing position under `table` (0 outside the points)."""
+    return table[position - 1] if position is not None and position <= len(table) else 0
+
 
 def read_csv(directory, name):
     """Return the rows of <directory>/<name>.csv as a list of dicts."""
@@ -51,8 +63,14 @@ def build(directory):
         for r in read_csv(directory, "races")
         if int(r["year"]) >= 1958
     }
+    # The Indianapolis 500 (1958-1960) never counted towards the
+    # constructors' championship, so it is not re-scored either.
+    indy = {race_id for race_id, r in races.items() if "Indianapolis" in r["name"]}
     # One record per (race, constructor), built from driver-level results.
     results = {}
+    # Positions already re-scored per (race, constructor): two drivers who
+    # shared one car have the same position, and the car scores only once.
+    rescored_positions = defaultdict(set)
     for r in read_csv(directory, "results"):
         race, constructor = int(r["raceId"]), int(r["constructorId"])
         if race not in races:
@@ -71,6 +89,7 @@ def build(directory):
                 poles=0,
                 racePoints=0,
                 sprintPoints=0,
+                rescoredPoints=0,
                 championshipPoints=None,
                 rank=None,
             ),
@@ -83,6 +102,9 @@ def build(directory):
         if position is not None:
             item["classified"] += 1
             item["finishSum"] += position
+            if race not in indy and position not in rescored_positions[key]:
+                rescored_positions[key].add(position)
+                item["rescoredPoints"] += points_for(position, GP_POINTS_2025)
     # Points per race come from constructor_results; sprint points are tracked
     # separately and then removed from racePoints so they are not counted twice.
     for r in read_csv(directory, "constructor_results"):
@@ -93,6 +115,8 @@ def build(directory):
         key = (int(r["raceId"]), int(r["constructorId"]))
         if key in results:
             results[key]["sprintPoints"] += float(r["points"])
+            position = int(r["position"]) if r["position"] != "\\N" else None
+            results[key]["rescoredPoints"] += points_for(position, SPRINT_POINTS_2025)
     for item in results.values():
         item["racePoints"] -= item["sprintPoints"]
     # Official standings after every race. Excluded entries ('E') score zero.
@@ -160,9 +184,11 @@ def validate(data):
         seen.add(key)
         if any(
             not math.isfinite(row[field])
-            for field in ("racePoints", "sprintPoints", "finishSum")
+            for field in ("racePoints", "sprintPoints", "rescoredPoints", "finishSum")
         ):
             raise ValueError(f"Non-finite result: {key}")
+        if row["rescoredPoints"] < 0:
+            raise ValueError(f"Negative re-scored points: {key}")
         if (
             not 0 <= row["wins"] <= row["podiums"] <= row["entries"]
             or not 0 <= row["classified"] <= row["entries"]
