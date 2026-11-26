@@ -11,6 +11,17 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
     <style>
+      /* Page transitions: on baizakisaev.com every page cross-fades into the next (View Transitions).
+         This page opts in too, inline so it applies from the very first frame; otherwise Chromium
+         cancels the fade and reports an error. Reduced motion turns it off. */
+      @view-transition {
+        navigation: auto;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        @view-transition {
+          navigation: none;
+        }
+      }
         body {
             background-color: #f4f6f9;
         }

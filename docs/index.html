@@ -9,6 +9,19 @@
       content="Explore Formula 1 constructor standings, compare teams and discover performance across seasons."
     />
     <link rel="icon" href="logo.svg" type="image/svg+xml" />
+    <!-- Page transitions: on baizakisaev.com every page cross-fades into the next (View Transitions).
+         Pitwall opts in too, inline so it applies from the very first frame; otherwise Chromium
+         cancels the fade the site has started and reports an error. Reduced motion turns it off. -->
+    <style>
+      @view-transition {
+        navigation: auto;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        @view-transition {
+          navigation: none;
+        }
+      }
+    </style>
     <link rel="stylesheet" href="app.css" />
     <script src="vendor/chart.umd.js" defer></script>
     <script type="module" src="app.js"></script>
