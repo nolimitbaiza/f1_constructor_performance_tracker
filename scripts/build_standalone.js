@@ -5,7 +5,7 @@
  * Browsers block ES modules and fetch() for pages opened from disk (file://),
  * so this script inlines everything the app needs into one HTML page:
  * the stylesheet, Chart.js, the logo, the dataset and the app code
- * (analytics.js + app.js converted from modules into one plain script).
+ * (analytics.js, theme.js and app.js converted from modules into one plain script).
  *
  * Run after changing anything in docs/:  npm run standalone
  */
@@ -30,26 +30,30 @@ function replaceOnce(text, search, replacement) {
 /** Prevents inlined code from closing the surrounding <script> tag early. */
 const safeScript = (code) => code.replaceAll("</script", "<\\/script");
 
-const [html, css, chart, analytics, app, logo, json] = await Promise.all(
-  [
-    "index.html",
-    "app.css",
-    "vendor/chart.umd.js",
-    "analytics.js",
-    "app.js",
-    "logo.svg",
-    "data.json",
-  ].map(read),
-);
+const [html, css, chart, analytics, themeJs, app, logo, json] =
+  await Promise.all(
+    [
+      "index.html",
+      "app.css",
+      "vendor/chart.umd.js",
+      "analytics.js",
+      "theme.js",
+      "app.js",
+      "logo.svg",
+      "data.json",
+    ].map(read),
+  );
 
-// Turn the two ES modules into one plain script: drop `export` keywords and
-// the import statement (both files end up in the same scope instead).
+// Turn the ES modules into one plain script: drop the `export` keywords and app.js's
+// import statements (all three files end up in the same scope instead).
 const analyticsCode = analytics.replace(/^export /gm, "");
-const appCode = app.replace(
-  /^import \{[^}]*\} from "\.\/analytics\.js";\n/m,
-  "",
-);
-if (appCode === app) throw new Error("Could not find the analytics import");
+const themeCode = themeJs.replace(/^export /gm, "");
+const imports = /^import \{[^}]*\} from "\.\/(analytics|theme)\.js";\n/gm;
+if ((app.match(imports) ?? []).length !== 2)
+  throw new Error("Expected app.js to import analytics.js and theme.js");
+const appCode = app.replace(imports, "");
+if (/^import /m.test(appCode))
+  throw new Error("app.js has an import this build does not inline");
 
 // Fonts and the header photo become data: URIs, so the file needs nothing beside it.
 const dataUri = async (name, type) =>
@@ -102,8 +106,8 @@ const scripts = [
   `<script>\n${safeScript(chart)}\n</script>`,
   "<!-- Race dataset (generated from data/raw by scripts/build_app_data.py) -->",
   `<script>window.PITWALL_DATA = ${data};</script>`,
-  "<!-- Pitwall app: docs/analytics.js + docs/app.js -->",
-  `<script>\n(() => {\n${safeScript(analyticsCode)}\n${safeScript(appCode)}\n})();\n</script>`,
+  "<!-- Pitwall app: docs/analytics.js + docs/theme.js + docs/app.js -->",
+  `<script>\n(() => {\n${safeScript(analyticsCode)}\n${safeScript(themeCode)}\n${safeScript(appCode)}\n})();\n</script>`,
 ].join("\n");
 page = replaceOnce(page, "</body>", `${scripts}\n</body>`);
 

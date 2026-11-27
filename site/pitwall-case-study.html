@@ -135,17 +135,23 @@
       </section>
 
       <figure class="cs-figure cs-figure--bleed" data-reveal>
-        <!-- Wide screens: a loop through five seasons (tools/build_f1_shot.py, home.js), over a still of its
-             first frame. Pitwall is dark-only, so both themes get the same video. -->
+        <!-- Wide screens: a loop through five seasons (scripts/build_site_media.py, home.js), over a still of its
+             first frame. Pitwall follows the site's theme, so each theme gets its own video and still. -->
         <div class="cs-figure-media" data-clip>
           <picture>
-            <source media="(max-width: 640px)" type="image/webp" srcset="assets/img/f1-dashboard-phone.webp?v=__BUILD__" width="1168" height="842">
-            <source media="(max-width: 640px)" srcset="assets/img/f1-dashboard-phone.png?v=__BUILD__" width="1168" height="842">
-            <source type="image/webp" srcset="assets/img/f1-dashboard.webp?v=__BUILD__" width="1956" height="1396">
-            <img src="assets/img/f1-dashboard.png?v=__BUILD__" width="1956" height="1396" loading="lazy" decoding="async" alt="Pitwall's overview for the 2024 season: 2,659 championship points across 10 constructors, the points-progression chart and the top-five standings, led by McLaren on 666 and Ferrari on 652">
+            <source media="(max-width: 640px)" type="image/webp" srcset="assets/img/f1-dashboard-phone.webp?v=__BUILD__" width="1136" height="845">
+            <source media="(max-width: 640px)" srcset="assets/img/f1-dashboard-phone.png?v=__BUILD__" width="1136" height="845">
+            <source type="image/webp" srcset="assets/img/f1-dashboard.webp?v=__BUILD__" width="2272" height="1764">
+            <img class="only-light" src="assets/img/f1-dashboard.png?v=__BUILD__" width="2272" height="1764" loading="lazy" decoding="async" alt="Pitwall's overview for the 2024 season: 2,659 championship points across 10 constructors, the points-progression chart and the top-five standings, led by McLaren on 666 and Ferrari on 652">
+          </picture>
+          <picture>
+            <source media="(max-width: 640px)" type="image/webp" srcset="assets/img/f1-dashboard-phone-dark.webp?v=__BUILD__" width="1136" height="845">
+            <source media="(max-width: 640px)" srcset="assets/img/f1-dashboard-phone-dark.png?v=__BUILD__" width="1136" height="845">
+            <source type="image/webp" srcset="assets/img/f1-dashboard-dark.webp?v=__BUILD__" width="2272" height="1764">
+            <img class="only-dark" src="assets/img/f1-dashboard-dark.png?v=__BUILD__" width="2272" height="1764" loading="lazy" decoding="async" alt="Pitwall's overview for the 2024 season: 2,659 championship points across 10 constructors, the points-progression chart and the top-five standings, led by McLaren on 666 and Ferrari on 652">
           </picture>
           <video class="clip-video" muted playsinline loop preload="none" aria-hidden="true" tabindex="-1"
-                 data-src-light="assets/video/pitwall-loop.webm?v=__BUILD__" data-src-dark="assets/video/pitwall-loop.webm?v=__BUILD__"></video>
+                 data-src-light="assets/video/pitwall-loop.webm?v=__BUILD__" data-src-dark="assets/video/pitwall-loop-dark.webm?v=__BUILD__"></video>
           <button class="clip-toggle" type="button" hidden aria-label="Pause the animation" title="Pause the animation">
             <svg class="i-pause" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M5 3.5v9M11 3.5v9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
             <svg class="i-play" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M5 3.2v9.6L12.6 8z" fill="currentColor"/></svg>
