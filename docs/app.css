@@ -583,8 +583,14 @@ select {
 .page-heading {
   margin: 36px 0 20px;
 }
+/* (.eyebrow-v2 and .data-line are paragraphs too, but keep their own small mono size) */
 .page-heading .eyebrow-v2 {
-  margin-bottom: 10px;
+  margin: 0 0 10px;
+  font-size: 0.75rem;
+}
+.page-heading .data-line {
+  margin-top: 12px;
+  font-size: 0.75rem;
 }
 .page-heading h2 {
   margin: 0;
@@ -712,6 +718,9 @@ select {
 .table-scroll {
   overflow-x: auto;
   margin: 0 -8px;
+}
+.table-scroll:focus-visible {
+  outline-offset: -2px;
 }
 .standings {
   width: 100%;
@@ -1042,6 +1051,96 @@ tbody tr:last-child td {
   accent-color: var(--team);
 }
 
+/* ---------- Monthly explorer (monthly.html) ---------- */
+.crumb-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-weight: 500;
+  text-decoration: none;
+  transition: color var(--dur-fast) linear;
+}
+.crumb-link:hover {
+  color: var(--ink);
+}
+.btn-primary {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--bg);
+}
+.monthly-heading {
+  margin-top: clamp(28px, 5vw, 56px);
+}
+.monthly-heading h1 {
+  margin: 0;
+  font-size: clamp(2rem, 1.5rem + 2vw, 3rem);
+  font-weight: 680;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+.toolbar-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.form-error {
+  margin: -6px 0 16px;
+  color: var(--neg);
+  font-size: 14px;
+}
+.month-panel {
+  margin-bottom: 16px;
+}
+.panel-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.panel-tools {
+  display: flex;
+  gap: 6px;
+}
+.month-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(240px, 1fr);
+  gap: 16px 28px;
+  margin-bottom: 16px;
+}
+.month-panel .month-body {
+  margin-bottom: 0;
+}
+.month-table {
+  max-height: 390px;
+  overflow: auto;
+}
+#view-history .month-table {
+  padding-top: 10px;
+}
+tr.is-picked td {
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+.compare-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.compare-grid .month-panel {
+  margin-bottom: 0;
+}
+/* Side by side there is less room: chart above table */
+.compare-grid .month-body {
+  grid-template-columns: minmax(0, 1fr);
+}
+.compare-grid .month-table {
+  max-height: 260px;
+}
+
 /* ---------- Loading, empty and error states ---------- */
 .status {
   padding: 80px var(--gutter);
@@ -1100,6 +1199,10 @@ tbody tr:last-child td {
   .coverage {
     flex-basis: 100%;
     margin-left: 0;
+  }
+  .month-body,
+  .compare-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 @media (max-width: 640px) {

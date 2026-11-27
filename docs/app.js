@@ -19,6 +19,7 @@ import {
   SCORING,
   POINTS_2025,
 } from "./analytics.js";
+import { theme, token, setupTheme, setupHeader } from "./theme.js";
 
 /* ---------- Small helpers ---------- */
 
@@ -127,47 +128,6 @@ const color = (id) =>
   colors[theme()][data.constructors.find((c) => c.id === id)?.ref] ??
   `hsl(${(id * 137) % 360} 55% ${theme() === "dark" ? 65 : 42}%)`;
 
-/* ---------- Light and dark theme ---------- */
-
-const systemDark = matchMedia("(prefers-color-scheme: dark)");
-
-/** "light" or "dark": the visitor's choice if they made one, otherwise their system's. */
-const theme = () =>
-  document.documentElement.getAttribute("data-theme") ||
-  (systemDark.matches ? "dark" : "light");
-
-/** A colour from the stylesheet's design tokens (e.g. "--muted"), for the charts. */
-const token = (name) =>
-  getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-
-const SUN =
-  '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
-const MOON =
-  '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
-
-/** Shows the icon of the theme the button switches to. */
-function paintThemeButton() {
-  const next = theme() === "dark" ? "light" : "dark";
-  $("theme-toggle").innerHTML = next === "light" ? SUN : MOON;
-  $("theme-toggle").setAttribute("aria-label", `Switch to the ${next} theme`);
-}
-
-/**
- * Switches between light and dark and remembers it. The setting ("agt-theme")
- * is shared with the rest of baizakisaev.com, so the choice follows the visitor.
- */
-function toggleTheme() {
-  const next = theme() === "dark" ? "light" : "dark";
-  document.documentElement.setAttribute("data-theme", next);
-  try {
-    localStorage.setItem("agt-theme", next);
-  } catch {
-    // Storage blocked: the theme still switches for this visit.
-  }
-  paintThemeButton();
-  render(); // charts and team colours are drawn for the current theme
-}
-
 /* ---------- Reusable HTML builders ---------- */
 
 /** Team name with a coloured stripe, linking to the team's profile. */
@@ -220,9 +180,12 @@ const chartPanel = (id, title, subtitle, extra = "") => `
     <div class="chart-legend" id="${id}-legend"></div>
   </section>`;
 
-/** Wraps table markup so wide tables scroll horizontally on small screens. */
+/**
+ * Wraps table markup so wide tables scroll horizontally on small screens. The wrapper can take
+ * keyboard focus, so it can also be scrolled without a mouse.
+ */
 const scrollTable = (head, rows, className = "standings") => `
-  <div class="table-scroll">
+  <div class="table-scroll" tabindex="0" role="region" aria-label="Table">
     <table class="${className}">
       <thead><tr>${head.map((h) => `<th scope="col">${h}</th>`).join("")}</tr></thead>
       <tbody>${rows.join("")}</tbody>
@@ -1073,20 +1036,10 @@ async function init() {
       `${data.seasons[0].year}–${latest.year} · updated after every race weekend`;
     updateConstructors();
 
-    // Theme: the header button, and the system setting when no choice was made.
+    // Theme switch (charts and team colours are redrawn for the new theme) and sticky header.
     Chart.defaults.font.family = token("--font-sans");
-    paintThemeButton();
-    $("theme-toggle").addEventListener("click", toggleTheme);
-    systemDark.addEventListener("change", () => {
-      if (document.documentElement.hasAttribute("data-theme")) return;
-      paintThemeButton();
-      render();
-    });
-    // The header gets its bottom line once the page scrolls under it.
-    const header = document.querySelector(".site-header");
-    const onScroll = () => header.classList.toggle("is-scrolled", scrollY > 4);
-    addEventListener("scroll", onScroll, { passive: true });
-    onScroll();
+    setupTheme($("theme-toggle"), render);
+    setupHeader(document.querySelector(".site-header"));
 
     // Filter form: changes apply immediately, so it is never submitted.
     $("filter-form").addEventListener("submit", (event) =>
