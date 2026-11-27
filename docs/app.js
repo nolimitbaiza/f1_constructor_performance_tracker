@@ -41,21 +41,45 @@ const number = (value) =>
     ? "—"
     : Number(value).toLocaleString("en-US", { maximumFractionDigits: 1 });
 
-/** Fixed colours for well-known teams, keyed by constructor reference. */
+/**
+ * Fixed colours for well-known teams, keyed by constructor reference: bright
+ * on the dark theme, deeper on the light one so lines and bars stay readable.
+ */
 const colors = {
-  mclaren: "#ff963d",
-  ferrari: "#ff4b5b",
-  mercedes: "#40d6bf",
-  red_bull: "#6692ff",
-  williams: "#58baff",
-  aston_martin: "#69b397",
-  alpine: "#e68ac7",
-  sauber: "#a5d85b",
-  rb: "#9f9aff",
-  haas: "#ccd2dc",
-  renault: "#ffe16b",
-  toro_rosso: "#8995e3",
-  racing_point: "#ee9dcb",
+  dark: {
+    mclaren: "#ff963d",
+    ferrari: "#ff4b5b",
+    mercedes: "#40d6bf",
+    red_bull: "#6692ff",
+    williams: "#58baff",
+    aston_martin: "#69b397",
+    alpine: "#e68ac7",
+    sauber: "#a5d85b",
+    rb: "#9f9aff",
+    haas: "#ccd2dc",
+    renault: "#ffe16b",
+    toro_rosso: "#8995e3",
+    racing_point: "#ee9dcb",
+    audi: "#d4d4d8",
+    cadillac: "#e8c27a",
+  },
+  light: {
+    mclaren: "#ea580c",
+    ferrari: "#dc2626",
+    mercedes: "#0d9488",
+    red_bull: "#2563eb",
+    williams: "#0284c7",
+    aston_martin: "#15803d",
+    alpine: "#db2777",
+    sauber: "#65a30d",
+    rb: "#7c3aed",
+    haas: "#64748b",
+    renault: "#ca8a04",
+    toro_rosso: "#4f46e5",
+    racing_point: "#be185d",
+    audi: "#52525b",
+    cadillac: "#a16207",
+  },
 };
 
 /* ---------- Application state ---------- */
@@ -100,8 +124,49 @@ function saveScoring() {
  * colour generated from their ID, so they look the same on every page.
  */
 const color = (id) =>
-  colors[data.constructors.find((c) => c.id === id)?.ref] ??
-  `hsl(${(id * 137) % 360} 55% 65%)`;
+  colors[theme()][data.constructors.find((c) => c.id === id)?.ref] ??
+  `hsl(${(id * 137) % 360} 55% ${theme() === "dark" ? 65 : 42}%)`;
+
+/* ---------- Light and dark theme ---------- */
+
+const systemDark = matchMedia("(prefers-color-scheme: dark)");
+
+/** "light" or "dark": the visitor's choice if they made one, otherwise their system's. */
+const theme = () =>
+  document.documentElement.getAttribute("data-theme") ||
+  (systemDark.matches ? "dark" : "light");
+
+/** A colour from the stylesheet's design tokens (e.g. "--muted"), for the charts. */
+const token = (name) =>
+  getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+const SUN =
+  '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+const MOON =
+  '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
+
+/** Shows the icon of the theme the button switches to. */
+function paintThemeButton() {
+  const next = theme() === "dark" ? "light" : "dark";
+  $("theme-toggle").innerHTML = next === "light" ? SUN : MOON;
+  $("theme-toggle").setAttribute("aria-label", `Switch to the ${next} theme`);
+}
+
+/**
+ * Switches between light and dark and remembers it. The setting ("agt-theme")
+ * is shared with the rest of baizakisaev.com, so the choice follows the visitor.
+ */
+function toggleTheme() {
+  const next = theme() === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  try {
+    localStorage.setItem("agt-theme", next);
+  } catch {
+    // Storage blocked: the theme still switches for this visit.
+  }
+  paintThemeButton();
+  render(); // charts and team colours are drawn for the current theme
+}
 
 /* ---------- Reusable HTML builders ---------- */
 
@@ -268,18 +333,19 @@ function makeChart(id, type, labels, datasets, options = {}) {
       plugins: {
         legend: { display: false }, // replaced by the HTML legend below
         tooltip: {
-          backgroundColor: "#292f37",
+          backgroundColor: token("--ink"),
           padding: 12,
-          titleColor: "#fff",
-          bodyColor: "#d5dbe3",
+          titleColor: token("--bg"),
+          bodyColor: token("--bg"),
+          cornerRadius: 10,
         },
       },
       scales: {
         x: {
           grid: { display: false },
           ticks: {
-            color: "#919aa8",
-            font: { size: 10 },
+            color: token("--muted"),
+            font: { size: 11 },
             maxRotation: 0,
             autoSkip: true,
             maxTicksLimit: 8,
@@ -288,8 +354,8 @@ function makeChart(id, type, labels, datasets, options = {}) {
         },
         y: {
           beginAtZero: true,
-          grid: { color: "#2d3239", drawTicks: false },
-          ticks: { color: "#919aa8", padding: 10, font: { size: 10 } },
+          grid: { color: token("--line"), drawTicks: false },
+          ticks: { color: token("--muted"), padding: 10, font: { size: 11 } },
           border: { display: false },
         },
       },
@@ -303,7 +369,9 @@ function makeChart(id, type, labels, datasets, options = {}) {
   if (legend)
     legend.innerHTML = datasets
       .map((d, i) => {
-        const swatch = Array.isArray(d.borderColor) ? "#aaa" : d.borderColor;
+        const swatch = Array.isArray(d.backgroundColor)
+          ? token("--muted")
+          : d.backgroundColor;
         return `
           <button class="small-button" data-toggle-chart="${id}" data-series="${i}" aria-pressed="true">
             <span class="swatch" style="--team:${swatch}"></span>${escape(d.label)}
@@ -427,15 +495,15 @@ function dashboard() {
       {
         label: "Wins",
         data: leaders.map((t) => t.wins),
-        backgroundColor: "#ff765e",
-        borderColor: "#ff765e",
+        backgroundColor: token("--accent"),
+        borderColor: token("--accent"),
         borderRadius: 3,
       },
       {
         label: "Podiums",
         data: leaders.map((t) => t.podiums),
-        backgroundColor: "#66768e",
-        borderColor: "#66768e",
+        backgroundColor: token("--muted"),
+        borderColor: token("--muted"),
         borderRadius: 3,
       },
     ],
@@ -697,7 +765,7 @@ function comparison() {
       field === "wins" ? "Wins" : "Podiums",
       chosen.map((t) => t[field]),
       chosen.map((t) => color(t.id)),
-      "#c6cbd3",
+      "transparent",
     );
 }
 
@@ -748,7 +816,7 @@ function analytics() {
     "Titles",
     champions.map(([, count]) => count),
     champions.map(([id]) => color(id)),
-    "#aeb6c5",
+    "transparent",
   );
   barChart(
     "share",
@@ -756,7 +824,7 @@ function analytics() {
     "Points share %",
     teams.map((t) => t.share),
     teams.map((t) => color(t.id)),
-    "#aeb6c5",
+    "transparent",
   );
 
   // Points share of this season's top five over the previous 15 seasons.
@@ -776,31 +844,27 @@ function analytics() {
 
 /* ---------- Routing and rendering ---------- */
 
-/** Eyebrow, heading, description and breadcrumb text for each route. */
+/** Eyebrow, heading and description for each route (the eyebrow is set in capitals by CSS). */
 const titles = {
   dashboard: [
-    "THE BIG PICTURE",
+    "The big picture",
     "Constructor overview",
-    "Follow the fight for the constructors’ championship.",
-    "Overview",
+    "Follow the fight for the constructors’ championship, race by race.",
   ],
   profiles: [
-    "BEHIND THE BADGE",
+    "Behind the badge",
     "Constructor profiles",
-    "Explore the teams that shaped Formula 1.",
-    "Constructors",
+    "Every team in the archive, with its titles and its record in each season.",
   ],
   comparison: [
-    "THE RIVALRIES",
+    "The rivalries",
     "Compare constructors",
-    "Two teams. Different stories. One grid.",
-    "Compare teams",
+    "Two to four teams side by side, in one season and across their history.",
   ],
   insights: [
-    "READ BETWEEN THE LAPS",
-    "Insights & analytics",
-    "Find the patterns behind the championship.",
-    "Insights & analytics",
+    "Read between the laps",
+    "Insights and analytics",
+    "Title counts, shares of the points and the patterns behind the championship.",
   ],
 };
 
@@ -811,14 +875,14 @@ function render() {
   const [route, rawId] = location.hash.slice(1).split("/");
   page = Object.hasOwn(titles, route) ? route : "dashboard";
 
-  // Page heading, breadcrumb and active navigation link.
-  const [eyebrow, heading, description, crumb] = titles[page];
+  // The intro belongs to the overview; the other views start at the switcher.
+  $("intro").hidden = page !== "dashboard";
+  // Page heading and the active view in the switcher.
+  const [eyebrow, heading, description] = titles[page];
   $("eyebrow").textContent = eyebrow;
   $("page-title").innerHTML = `${heading}<span>.</span>`;
   $("page-description").textContent = description;
-  $("breadcrumb").textContent = crumb;
-  document.querySelectorAll("nav a").forEach((a) => {
-    a.classList.toggle("active", a.dataset.page === page);
+  document.querySelectorAll(".views a").forEach((a) => {
     if (a.dataset.page === page) a.setAttribute("aria-current", "page");
     else a.removeAttribute("aria-current");
   });
@@ -861,7 +925,7 @@ function render() {
 function exportChart(button) {
   const chart = charts.find((c) => c.canvas.id === button.dataset.chart);
   chart.options.plugins.legend.display = true;
-  chart.options.plugins.legend.labels = { color: "#e2e5e9" };
+  chart.options.plugins.legend.labels = { color: token("--ink") };
   chart.update("none");
 
   // Draw the chart onto a larger canvas with room for a header and footer.
@@ -869,10 +933,10 @@ function exportChart(button) {
   canvas.width = chart.canvas.width;
   canvas.height = chart.canvas.height + 70;
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#191c20";
+  ctx.fillStyle = token("--surface");
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "#f4f5f7";
-  ctx.font = "16px Arial";
+  ctx.fillStyle = token("--ink");
+  ctx.font = "600 16px Inter, Arial, sans-serif";
   const title = button.closest(".panel").querySelector("h2").textContent;
   ctx.fillText(
     `${title} · ${year}${rescored() ? " · 2025 points system" : ""}`,
@@ -880,8 +944,8 @@ function exportChart(button) {
     25,
   );
   ctx.drawImage(chart.canvas, 0, 40);
-  ctx.fillStyle = "#a0a6b1";
-  ctx.font = "10px Arial";
+  ctx.fillStyle = token("--muted");
+  ctx.font = "11px Inter, Arial, sans-serif";
   ctx.fillText(
     `PITWALL · Archive through ${data.meta.through}`,
     20,
@@ -993,13 +1057,36 @@ async function init() {
       [...data.seasons].reverse().find((s) => s.complete)?.year ??
       data.seasons.at(-1).year;
     fillSeasons();
-    $("data-label").textContent = `ARCHIVE THROUGH ${data.meta.through}`;
-    $("archive-range").textContent =
-      `${data.seasons[0].year} — ${data.seasons.at(-1).year}`;
+    // How current the data is, e.g. "Results through 22 Nov 2026 · 2026: 21 of 23 rounds".
     const latest = data.seasons.at(-1);
+    const through = new Date(
+      `${data.meta.through}T00:00:00Z`,
+    ).toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      timeZone: "UTC",
+    });
+    $("data-label").textContent =
+      `Results through ${through} · ${latest.complete ? `${latest.year} season complete` : `${latest.year}: ${latest.races} of ${latest.scheduled} rounds`}`;
     $("footer-coverage").textContent =
-      `Results through ${data.meta.through} · ${latest.complete ? `${latest.year} season complete` : `${latest.year}: ${latest.races} of ${latest.scheduled} rounds`} · Updated after each race weekend`;
+      `${data.seasons[0].year}–${latest.year} · updated after every race weekend`;
     updateConstructors();
+
+    // Theme: the header button, and the system setting when no choice was made.
+    Chart.defaults.font.family = token("--font-sans");
+    paintThemeButton();
+    $("theme-toggle").addEventListener("click", toggleTheme);
+    systemDark.addEventListener("change", () => {
+      if (document.documentElement.hasAttribute("data-theme")) return;
+      paintThemeButton();
+      render();
+    });
+    // The header gets its bottom line once the page scrolls under it.
+    const header = document.querySelector(".site-header");
+    const onScroll = () => header.classList.toggle("is-scrolled", scrollY > 4);
+    addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
 
     // Filter form: changes apply immediately, so it is never submitted.
     $("filter-form").addEventListener("submit", (event) =>

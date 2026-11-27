@@ -8,6 +8,8 @@
     { "from": "docs/app.js", "to": "pitwall/app.js" },
     { "from": "docs/analytics.js", "to": "pitwall/analytics.js" },
     { "from": "docs/logo.svg", "to": "pitwall/logo.svg" },
+    { "from": "docs/fonts/", "to": "pitwall/fonts/" },
+    { "from": "docs/img/", "to": "pitwall/img/" },
     { "from": "docs/data.json", "to": "pitwall/data.json" },
     { "from": "docs/monthly.html", "to": "pitwall/monthly.html" },
     { "from": "docs/f1_data.csv", "to": "pitwall/f1_data.csv" },

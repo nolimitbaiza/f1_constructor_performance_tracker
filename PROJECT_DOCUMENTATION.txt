@@ -55,8 +55,10 @@ data pipeline.
   weekend, so the data stays current without any manual work.
 - Exports: download the current table as CSV and any chart as PNG.
 - Interactive charts: tooltips and legend buttons to show/hide each team.
-- Responsive layout: works on desktop, tablet and mobile (the sidebar
-  becomes a top menu on small screens).
+- Responsive layout: works on desktop, tablet and mobile (the view switcher
+  and filters stack on small screens).
+- Light and dark themes: follows the system setting, with a switch in the
+  header; the same design as the rest of baizakisaev.com.
 - Accessibility: skip link, keyboard focus styles, labelled forms and
   charts, reduced-motion support.
 - Shareable URLs: each page and team profile has its own link
@@ -144,7 +146,6 @@ What we learned:
 8. FUTURE IMPROVEMENTS
 ----------------------
 - Driver statistics alongside constructor statistics
-- Light theme toggle
 - Circuit-by-circuit and head-to-head race results
 - Merging renamed teams into one history (e.g. Toleman -> Benetton ->
   Renault -> Alpine)

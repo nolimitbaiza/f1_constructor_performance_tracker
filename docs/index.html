@@ -3,12 +3,21 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Pitwall — Constructor Performance</title>
+    <title>Pitwall · Formula 1 constructors since 1958</title>
     <meta
       name="description"
-      content="Explore Formula 1 constructor standings, compare teams and discover performance across seasons."
+      content="Explore every Formula 1 constructors' championship since 1958: standings, team histories, head-to-head comparisons, and every race re-scored with today's points."
     />
     <link rel="icon" href="logo.svg" type="image/svg+xml" />
+    <!-- Light or dark: the visitor's saved choice (shared with the rest of baizakisaev.com),
+         applied before the first paint so the page never flashes the wrong theme. -->
+    <script>
+      try {
+        var t = localStorage.getItem("agt-theme");
+        if (t === "light" || t === "dark")
+          document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    </script>
     <!-- Page transitions: on baizakisaev.com every page cross-fades into the next (View Transitions).
          Pitwall opts in too, inline so it applies from the very first frame; otherwise Chromium
          cancels the fade the site has started and reports an error. Reduced motion turns it off. -->
@@ -28,111 +37,187 @@
   </head>
   <body>
     <a class="skip" href="#content">Skip to content</a>
-    <aside class="sidebar">
-      <!-- Logo and product name; links back to the overview -->
-      <a class="brand" href="#dashboard"
-        ><img
-          class="brand-logo"
-          src="logo.svg"
-          alt=""
-          width="34"
-          height="34"
-        />PITWALL<span class="brand-sub">CONSTRUCTOR INTELLIGENCE</span></a
-      >
-      <div class="nav-label">WORKSPACE</div>
-      <!-- Hash-based navigation: app.js renders the view for each route -->
-      <nav aria-label="Main navigation">
-        <a href="#dashboard" data-page="dashboard"
-          ><span aria-hidden="true">▦</span> Overview</a
-        >
-        <a href="#profiles" data-page="profiles"
-          ><span aria-hidden="true">◈</span> Constructors</a
-        >
-        <a href="#comparison" data-page="comparison"
-          ><span aria-hidden="true">⇄</span> Compare teams</a
-        >
-        <a href="#insights" data-page="insights"
-          ><span aria-hidden="true">▥</span> Insights & analytics</a
-        >
-      </nav>
-      <div class="sidebar-bottom">
-        <div class="archive-label">THE CONSTRUCTOR ARCHIVE</div>
-        <strong id="archive-range">1958 — 2025</strong>
-        <p>Every era. Every rivalry.<br />The numbers behind the grid.</p>
-        <a href="monthly.html">Monthly explorer</a>
-        <div class="unofficial">Independent F1 data project</div>
-      </div>
-    </aside>
-    <div class="workspace">
-      <header class="topbar">
-        <div>
-          Formula 1 <span>/</span> <strong id="breadcrumb">Overview</strong>
-        </div>
-        <div class="data-label" id="data-label">Loading archive…</div>
-      </header>
-      <main id="content" tabindex="-1">
-        <!-- Loading and error messages -->
-        <div id="status" role="status" class="status">
-          Loading race results…
-        </div>
-        <div id="app" hidden>
-          <section class="page-heading">
-            <div>
-              <div class="eyebrow" id="eyebrow">THE BIG PICTURE</div>
-              <h1 id="page-title">Constructor overview<span>.</span></h1>
-              <p id="page-description">
-                Follow the fight for the constructors’ championship.
-              </p>
-            </div>
-            <button id="export" class="button">
-              Export results <span aria-hidden="true">↓</span>
-            </button>
-          </section>
-          <!-- Filters apply to every view; the constructor filter is shown on the overview only -->
-          <form
-            class="filterbar"
-            id="filter-form"
-            aria-label="Dashboard filters"
+
+    <!-- Same header as the rest of baizakisaev.com: who made it, the project, and its actions -->
+    <header class="site-header">
+      <div class="wrap bar">
+        <div class="crumbs">
+          <a
+            class="brand-link"
+            href="https://baizakisaev.com/"
+            title="Baizak Isaev"
           >
-            <div class="filters">
-              <label>SEASON<select id="season"></select></label
-              ><label id="constructor-filter"
-                >CONSTRUCTOR<select id="constructor">
-                  <option value="all">All constructors</option>
-                </select></label
-              >
-              <!-- Points system: official, or every race re-scored with 2025 points -->
-              <fieldset class="scoring-toggle">
-                <legend>POINTS</legend>
-                <div class="segments">
-                  <label
-                    ><input
-                      type="radio"
-                      name="scoring"
-                      value="official"
-                      checked
-                    />Official</label
-                  ><label
-                    ><input type="radio" name="scoring" value="rescored" />2025
-                    system</label
-                  >
-                </div>
-              </fieldset>
-            </div>
+            <span class="avatar" aria-hidden="true"
+              ><img src="img/profile-64.jpg" width="28" height="28" alt=""
+            /></span>
+            <span class="brand-name">Baizak Isaev</span>
+          </a>
+          <span class="crumb-sep" aria-hidden="true">/</span>
+          <span class="crumb-here"
+            ><img
+              class="brand-logo"
+              src="logo.svg"
+              width="20"
+              height="20"
+              alt=""
+            />Pitwall</span
+          >
+        </div>
+        <div class="actions">
+          <a
+            class="btn nav-case"
+            href="https://baizakisaev.com/pitwall-case-study"
+            >Case study</a
+          >
+          <a class="btn hide-sm" href="monthly.html">
+            <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+              <path
+                d="M4 20V10M10 20V4M16 20v-7M22 20H2"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+              />
+            </svg>
+            <span class="lbl">Monthly explorer</span>
+          </a>
+          <button
+            class="btn"
+            id="export"
+            type="button"
+            title="Download the table on this page as a CSV file"
+          >
+            <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+              <path
+                d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <span class="lbl">Export CSV</span>
+          </button>
+          <button
+            class="btn btn-icon"
+            id="theme-toggle"
+            type="button"
+            aria-label="Switch theme"
+            title="Switch light / dark"
+          ></button>
+        </div>
+      </div>
+    </header>
+
+    <main id="content" tabindex="-1">
+      <!-- Loading and error messages -->
+      <div id="status" role="status" class="status wrap">
+        Loading race results…
+      </div>
+
+      <div id="app" hidden>
+        <!-- Intro: what Pitwall is, and the way to its case study -->
+        <section class="intro wrap" id="intro">
+          <div>
+            <p class="eyebrow-v2">
+              <span class="live-dot" aria-hidden="true"></span>Live data ·
+              Formula 1 constructors
+            </p>
+            <h1>
+              Every constructors’ championship since 1958,
+              <span class="hl">side by side</span>.
+            </h1>
+            <p class="lede">
+              Pick a season, open any team’s history, compare up to four rivals,
+              or re-score every race with today’s points to compare eras like
+              with like. New results arrive after every race weekend.
+            </p>
+            <p class="data-line" id="data-label">Loading…</p>
+          </div>
+          <a
+            class="case-card"
+            href="https://baizakisaev.com/pitwall-case-study"
+          >
+            <span class="case-card-kicker"
+              >Case study · Pipeline and findings</span
+            >
+            <span class="case-card-title"
+              >How Pitwall compares Formula&nbsp;1 teams across
+              68&nbsp;seasons</span
+            >
+            <span class="case-card-cta"
+              >Read the case study
+              <span class="arrow" aria-hidden="true">→</span></span
+            >
+          </a>
+        </section>
+
+        <div class="wrap">
+          <!-- Hash-based navigation: app.js renders the view for each route -->
+          <nav class="views" aria-label="Views">
+            <a href="#dashboard" data-page="dashboard">Overview</a>
+            <a href="#profiles" data-page="profiles">Constructors</a>
+            <a href="#comparison" data-page="comparison">Compare</a>
+            <a href="#insights" data-page="insights">Insights</a>
+          </nav>
+
+          <!-- Filters apply to every view; the constructor filter is shown on the overview only -->
+          <form class="toolbar" id="filter-form" aria-label="Filters">
+            <label class="field"
+              ><span>Season</span
+              ><select id="season"></select
+            ></label>
+            <label class="field" id="constructor-filter"
+              ><span>Constructor</span
+              ><select id="constructor">
+                <option value="all">All constructors</option>
+              </select></label
+            >
+            <!-- Points system: official, or every race re-scored with 2025 points -->
+            <fieldset class="field scoring-toggle">
+              <legend>Points</legend>
+              <div class="seg">
+                <label
+                  ><input
+                    type="radio"
+                    name="scoring"
+                    value="official"
+                    checked
+                  />Official</label
+                ><label
+                  ><input type="radio" name="scoring" value="rescored" />2025
+                  system</label
+                >
+              </div>
+            </fieldset>
             <div id="coverage" class="coverage"></div>
           </form>
           <!-- Explains the re-scored points; shown only when "2025 system" is selected -->
           <p id="scoring-note" class="scoring-note" hidden></p>
+
+          <!-- Heading of the current view -->
+          <section class="page-heading">
+            <p class="eyebrow-v2" id="eyebrow">Overview</p>
+            <h2 id="page-title">Constructor overview<span>.</span></h2>
+            <p id="page-description">
+              Follow the fight for the constructors’ championship.
+            </p>
+          </section>
+
           <!-- The active view is rendered here by app.js -->
           <div id="view"></div>
-          <footer>
+
+          <footer class="site-footer">
             <span
-              >PITWALL <span class="footer-slash">/</span> Built for the bigger
-              picture.</span
+              >Pitwall · race data from the Ergast archive and the
+              <a href="https://github.com/jolpica/jolpica-f1"
+                >Jolpica F1 API</a
+              ></span
             ><span id="footer-coverage"></span>
           </footer>
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
   </body>
 </html>

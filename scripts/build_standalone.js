@@ -51,6 +51,18 @@ const appCode = app.replace(
 );
 if (appCode === app) throw new Error("Could not find the analytics import");
 
+// Fonts and the header photo become data: URIs, so the file needs nothing beside it.
+const dataUri = async (name, type) =>
+  `data:${type};base64,${(await readFile(new URL(name, docs))).toString("base64")}`;
+let styles = css;
+for (const [, font] of css.matchAll(/url\("(fonts\/[^"]+\.woff2)"\)/g))
+  styles = styles.replace(
+    `url("${font}")`,
+    `url("${await dataUri(font, "font/woff2")}")`,
+  );
+if (styles.includes('url("fonts/'))
+  throw new Error("A font in app.css was not inlined");
+
 // "<" is escaped so the data can never be read as HTML.
 const data = JSON.stringify(JSON.parse(json)).replaceAll("<", "\\u003c");
 const logoUri = `data:image/svg+xml;base64,${Buffer.from(logo).toString("base64")}`;
@@ -64,8 +76,13 @@ page = replaceOnce(
 page = replaceOnce(page, 'src="logo.svg"', `src="${logoUri}"`);
 page = replaceOnce(
   page,
+  'src="img/profile-64.jpg"',
+  `src="${await dataUri("img/profile-64.jpg", "image/jpeg")}"`,
+);
+page = replaceOnce(
+  page,
   '<link rel="stylesheet" href="app.css" />',
-  `<style>\n${css}</style>`,
+  `<style>\n${styles}</style>`,
 );
 page = replaceOnce(
   page,
