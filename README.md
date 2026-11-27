@@ -13,7 +13,8 @@ Explore Formula 1 constructor performance from 1958 to the latest race weekend. 
 - **Comparison:** compare two to four constructors using points, wins, podiums, average finishes, and historical points shares. Export results as CSV and charts as PNG.
 - **Insights:** constructor rankings, championship title counts, points shares, and observations calculated from each season.
 - **Two points systems:** switch between the official points and every race re-scored with today's (2025) system, to compare eras like with like. Re-scored tables show each team's official position and how far it moved.
-- **Responsive interface:** desktop and mobile layouts, keyboard-accessible controls, labelled charts, and readable data tables.
+- **Design:** the same design system as [baizakisaev.com](https://baizakisaev.com/) (Inter and JetBrains Mono, one green accent, pill buttons, segmented switches and soft cards), with light and dark themes that follow the system setting or a header switch; the choice is shared with the rest of the site.
+- **Responsive interface:** desktop, tablet and mobile layouts, keyboard-accessible controls, labelled charts, and readable data tables. Checked with axe-core (WCAG 2 AA, both themes).
 - **Backend:** validated REST filters, structured errors, PostgreSQL storage, and repeatable transactional Python imports.
 - **Monthly explorer:** the original monthly dashboard remains available at `docs/monthly.html`.
 
@@ -31,7 +32,7 @@ The data is updated automatically after every race weekend (see [Automatic updat
 
 | Layer | Technologies |
 | --- | --- |
-| Frontend | HTML, CSS, JavaScript ES modules, Chart.js |
+| Frontend | HTML, CSS, JavaScript ES modules, Chart.js, Inter and JetBrains Mono (SIL Open Font License, in `docs/fonts/`) |
 | REST API | Node.js, Express, node-postgres |
 | Database | PostgreSQL |
 | Application ETL | Python standard library, psycopg |
