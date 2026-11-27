@@ -1,0 +1,332 @@
+<!doctype html>
+<!--
+  Pitwall's tour: six slides that explain what Pitwall does, each with a chart that draws itself,
+  in the style of AI Grid Trader's presenter mode. scripts/build_tour.py records it into the silent
+  video on the baizakisaev.com home page card. It is not published: every number on it comes from
+  docs/data.json, so a re-recording after new races stays correct.
+
+  Served from the repository root (build_tour.py does this): /scripts/tour.html. window.show(i)
+  moves to slide i; the arrow keys work too, for a look by hand.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280">
+<title>Pitwall tour</title>
+<script src="../docs/vendor/chart.umd.js"></script>
+<style>
+@font-face { font-family: "Inter"; src: url("../docs/fonts/inter-latin-var.woff2") format("woff2"); font-weight: 100 900; }
+@font-face { font-family: "JetBrains Mono"; src: url("../docs/fonts/jetbrains-mono-latin-500.woff2") format("woff2"); font-weight: 500; }
+/* Pitwall's own colours (docs/app.css) */
+:root {
+  --bg: #fafaf9; --surface: #ffffff; --ink: #0c0a09; --muted: #6f6863; --line: #e7e5e4; --soft: #f5f5f4;
+  --accent: #047857; --grid: #efedec;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0c0c0d; --surface: #151517; --ink: #f5f5f4; --muted: #a1a1aa; --line: #27272a; --soft: #1c1c1f;
+    --accent: #34d399; --grid: #1f1f22;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; margin: 0; }
+html, body { width: 1280px; height: 720px; overflow: hidden; }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 16px/1.5 "Inter", system-ui, sans-serif; -webkit-font-smoothing: antialiased;
+  padding: 0 44px 32px; display: flex; flex-direction: column;
+}
+header {
+  display: flex; align-items: center; gap: 10px; height: 62px; flex: none;
+  border-bottom: 1px solid var(--line);
+}
+header img { width: 24px; height: 24px; border-radius: 6px; }
+header b { font-weight: 650; font-size: 15px; letter-spacing: -0.01em; }
+header span { color: var(--muted); font-size: 15px; }
+.dots { margin-left: auto; display: flex; gap: 6px; }
+.dots i { width: 8px; height: 8px; border-radius: 4px; background: var(--line); transition: width 300ms, background 300ms; }
+.dots i.on { width: 26px; background: var(--accent); }
+.slide { display: none; flex: 1; flex-direction: column; min-height: 0; padding-top: 30px; }
+.slide.on { display: flex; }
+.slide.on > * { animation: rise 520ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.slide.on > h1 { animation-delay: 60ms; }
+.slide.on > p { animation-delay: 120ms; }
+.slide.on > .stage { animation-delay: 180ms; }
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+.eyebrow { color: var(--accent); font-weight: 650; font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase; }
+h1 { margin-top: 10px; font-size: 46px; line-height: 1.08; font-weight: 700; letter-spacing: -0.035em; max-width: 25ch; text-wrap: balance; }
+p { margin-top: 14px; color: var(--muted); font-size: 21px; line-height: 1.45; max-width: 60ch; }
+.stage { position: relative; flex: 1; min-height: 0; margin-top: 22px; }
+.legend { display: flex; gap: 20px; color: var(--muted); font-size: 15px; margin-bottom: 8px; height: 22px; }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 14px; height: 3px; border-radius: 2px; }
+.chart { position: absolute; inset: 30px 0 0; }
+/* Two charts side by side, each with a small title */
+.pair { position: absolute; inset: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
+.pair > div { position: relative; }
+.pair h2 { font-size: 16px; font-weight: 650; letter-spacing: -0.01em; }
+.pair h2 span { color: var(--muted); font-weight: 450; }
+.pair .chart { inset: 34px 0 0; }
+.pair > div + div { animation: rise 520ms cubic-bezier(0.22, 1, 0.36, 1) 1500ms both; }
+/* The dashboard itself, moving slowly up inside a frame */
+.frame {
+  position: absolute; inset: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--bg); box-shadow: 0 1px 2px rgb(0 0 0 / 0.05), 0 18px 40px -20px rgb(0 0 0 / 0.25);
+}
+.frame iframe { border: 0; width: 1240px; transform-origin: 0 0; }
+</style>
+</head>
+<body>
+<header>
+  <img src="../docs/logo.svg" alt=""><b>Pitwall</b><span>by Baizak Isaev</span>
+  <div class="dots" aria-hidden="true"></div>
+</header>
+
+<section class="slide">
+  <div class="eyebrow">1 · The data</div>
+  <h1>Every constructors' championship since 1958, in one place.</h1>
+  <p id="s1-sub"></p>
+  <div class="stage"><div class="legend"><span><i style="background: var(--accent)"></i>Grands Prix each season</span></div><div class="chart"><canvas id="c1"></canvas></div></div>
+</section>
+
+<section class="slide">
+  <div class="eyebrow">2 · The problem</div>
+  <h1>A win was worth 8 points in 1958. Since 2010 it has been worth 25.</h1>
+  <p>So raw points can't compare a team from the 1980s with one from today.</p>
+  <div class="stage"><div class="legend"><span><i style="background: var(--accent)"></i>Points for a Grand Prix win</span></div><div class="chart"><canvas id="c2"></canvas></div></div>
+</section>
+
+<section class="slide">
+  <div class="eyebrow">3 · The method</div>
+  <h1>So Pitwall scores each team by its share of all the points.</h1>
+  <p id="s3-sub"></p>
+  <div class="stage"><div class="pair">
+    <div><h2>Points scored <span>· champions</span></h2><div class="chart"><canvas id="c3a"></canvas></div></div>
+    <div><h2>Share of all the points <span>· the same seasons</span></h2><div class="chart"><canvas id="c3b"></canvas></div></div>
+  </div></div>
+</section>
+
+<section class="slide">
+  <div class="eyebrow">4 · A finding</div>
+  <h1 id="s4-title"></h1>
+  <p>Share of all championship points during each team's run of consecutive titles.</p>
+  <div class="stage"><div class="legend"><span><i style="background: var(--muted)"></i>Share of the points, %</span></div><div class="chart"><canvas id="c4"></canvas></div></div>
+</section>
+
+<section class="slide">
+  <div class="eyebrow" id="s5-eyebrow"></div>
+  <h1 id="s5-title"></h1>
+  <p>Cumulative championship points after each Grand Prix, for the top five.</p>
+  <div class="stage"><div class="legend" id="l5"></div><div class="chart"><canvas id="c5"></canvas></div></div>
+</section>
+
+<section class="slide">
+  <div class="eyebrow">6 · The dashboard</div>
+  <h1>Pick a season, open any team or compare four rivals.</h1>
+  <p>Or re-score every race with today's points, to compare eras like with like.</p>
+  <div class="stage"><div class="frame"><iframe id="dash" src="../docs/index.html#dashboard" title="Pitwall dashboard" scrolling="no"></iframe></div></div>
+</section>
+
+<script>
+(async () => {
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+  // Pitwall's team colours (docs/app.js), deeper on light, brighter on dark.
+  const TEAM = dark
+    ? { mclaren: "#ff963d", ferrari: "#ff4b5b", mercedes: "#40d6bf", red_bull: "#6692ff", williams: "#58baff", lotus: "#e8c27a" }
+    : { mclaren: "#ea580c", ferrari: "#dc2626", mercedes: "#0d9488", red_bull: "#2563eb", williams: "#0284c7", lotus: "#a16207" };
+  const ink = css("--ink"), muted = css("--muted"), grid = css("--grid"), accent = css("--accent");
+  Chart.defaults.font.family = '"Inter", system-ui, sans-serif';
+  Chart.defaults.font.size = 14;
+  Chart.defaults.color = muted;
+  Chart.defaults.plugins.legend.display = false;
+  Chart.defaults.plugins.tooltip.enabled = false;
+  Chart.defaults.maintainAspectRatio = false;
+  Chart.defaults.events = [];
+
+  const data = await (await fetch("../docs/data.json")).json();
+  const team = new Map(data.constructors.map((c) => [c.id, c]));
+  const race = new Map(data.races.map((r) => [r.id, r]));
+  const complete = data.seasons.filter((s) => s.complete).map((s) => s.year).sort((a, b) => a - b);
+  const first = complete[0], latest = complete[complete.length - 1];
+
+  // Official standings after each season's last race: points, and the champion (rank 1).
+  const lastRace = new Map();
+  data.races.forEach((r) => { if (!lastRace.has(r.season) || r.round > lastRace.get(r.season).round) lastRace.set(r.season, r); });
+  const final = new Map(complete.map((y) => [y, new Map()]));
+  const champion = new Map();
+  data.standings.forEach((s) => {
+    const r = race.get(s.raceId);
+    if (!final.has(r.season) || lastRace.get(r.season).id !== s.raceId) return;
+    final.get(r.season).set(s.constructorId, s.points);
+    if (s.rank === 1) champion.set(r.season, s.constructorId);
+  });
+  const total = (y) => [...final.get(y).values()].reduce((a, b) => a + b, 0);
+  const share = (y, id) => (final.get(y).get(id) || 0) / total(y) * 100;
+  const byRef = (ref) => data.constructors.find((c) => c.ref === ref).id;
+  const span = (a, b) => `${a}–${String(b).slice(2)}`;
+
+  // A line that draws itself from left to right over `ms`.
+  const progressive = (ms, n) => {
+    const step = ms / n;
+    const prevY = (ctx) => ctx.index === 0 ? ctx.chart.scales.y.getPixelForValue(0)
+      : ctx.chart.getDatasetMeta(ctx.datasetIndex).data[ctx.index - 1].getProps(["y"], true).y;
+    return {
+      x: { type: "number", easing: "linear", duration: step, from: NaN,
+           delay: (ctx) => { if (ctx.type !== "data" || ctx.xStarted) return 0; ctx.xStarted = true; return ctx.index * step; } },
+      y: { type: "number", easing: "linear", duration: step, from: prevY,
+           delay: (ctx) => { if (ctx.type !== "data" || ctx.yStarted) return 0; ctx.yStarted = true; return ctx.index * step; } },
+    };
+  };
+  const axes = (extra = {}) => ({
+    x: { grid: { display: false }, border: { color: css("--line") }, ticks: { maxRotation: 0, autoSkip: true, autoSkipPadding: 28 }, ...(extra.x || {}) },
+    y: { grid: { color: grid }, border: { display: false }, beginAtZero: true, ...(extra.y || {}) },
+  });
+  const legend = (el, items) => { document.getElementById(el).innerHTML = items.map(([name, c]) => `<span><i style="background:${c}"></i>${name}</span>`).join(""); };
+
+  // ---------- slide builders (each draws its chart when its slide is shown) ----------
+  const grandsPrix = data.races.length;
+  document.getElementById("s1-sub").textContent =
+    `${complete.length} seasons and ${(Math.floor(grandsPrix / 100) * 100).toLocaleString("en-US")}+ Grands Prix, with every team's result in each, loaded by a Python pipeline into PostgreSQL.`;
+
+  const builders = [
+    () => new Chart(c1, { type: "bar",
+      data: { labels: complete, datasets: [{ data: complete.map((y) => data.seasons.find((s) => s.year === y).races), backgroundColor: accent, borderRadius: 2, barPercentage: 0.75 }] },
+      options: { scales: axes(), animation: { duration: 700, easing: "easeOutQuart", delay: (ctx) => ctx.type === "data" ? ctx.dataIndex * 22 : 0 } } }),
+
+    () => {
+      // Points for a win in the constructors' championship: 8 to 1960, 9 to 1990, 10 to 2009, 25 since.
+      const win = (y) => y <= 1960 ? 8 : y <= 1990 ? 9 : y <= 2009 ? 10 : 25;
+      return new Chart(c2, { type: "line",
+        data: { labels: complete, datasets: [{ data: complete.map(win), borderColor: accent, backgroundColor: accent + "22", fill: true, stepped: true, borderWidth: 3, pointRadius: 0 }] },
+        options: { scales: axes({ y: { max: 30, ticks: { stepSize: 5 } } }), animation: progressive(2600, complete.length) } });
+    },
+
+    () => {
+      // Four dominant champions from four eras: raw points, then the same seasons as a share.
+      const picks = [1988, 2002, 2016, 2023].filter((y) => champion.has(y)).map((y) => {
+        const id = champion.get(y);
+        return { y, id, name: team.get(id).name, pts: final.get(y).get(id), pct: share(y, id) };
+      });
+      const [old, recent] = [picks[0], picks[picks.length - 1]];
+      const times = (r) => `${r - Math.floor(r) >= 0.1 ? "more than " : ""}${["", "once", "twice", "three times", "four times", "five times"][Math.floor(r)] || Math.floor(r) + " times"}`;
+      document.getElementById("s3-sub").textContent =
+        `${recent.name} scored ${Math.round(recent.pts)} points in ${recent.y}, ${times(recent.pts / old.pts)} ${old.name}'s ${Math.round(old.pts)} in ${old.y}. ` +
+        `But ${old.name} took ${old.pct.toFixed(0)}% of all the points, ${recent.name} ${recent.pct.toFixed(0)}%.`;
+      const labels = picks.map((p) => [p.name, String(p.y)]);
+      const colors = picks.map((p) => TEAM[team.get(p.id).ref] || muted);
+      const bars = (canvas, values, fmt, delay, max) => new Chart(canvas, { type: "bar",
+        data: { labels, datasets: [{ data: values, backgroundColor: colors, borderRadius: 4, barPercentage: 0.62 }] },
+        options: { layout: { padding: { top: 26 } }, scales: axes({ x: { ticks: { color: ink, font: { size: 14, weight: 550 } } }, y: { max, ticks: { callback: fmt, maxTicksLimit: 6 } } }),
+          animation: { duration: 900, easing: "easeOutQuart", delay: (ctx) => ctx.type === "data" ? delay + ctx.dataIndex * 140 : 0 } },
+        plugins: [{ id: "values", afterDatasetsDraw(chart) {
+          const g = chart.ctx; g.save(); g.font = "600 15px Inter"; g.fillStyle = ink; g.textAlign = "center";
+          chart.getDatasetMeta(0).data.forEach((bar, i) => { const p = bar.getProps(["x", "y"], false); g.fillText(fmt(values[i]), p.x, p.y - 8); });
+          g.restore(); } }] });
+      return [bars(c3a, picks.map((p) => Math.round(p.pts)), (v) => String(v), 200, undefined),
+              bars(c3b, picks.map((p) => +p.pct.toFixed(1)), (v) => Math.round(v) + "%", 1700, 60)];
+    },
+
+    () => {
+      // Runs of three or more consecutive titles, and each run's share of all points scored in it.
+      const runs = [];
+      let start = 0;
+      for (let i = 1; i <= complete.length; i++) {
+        if (i < complete.length && champion.get(complete[i]) === champion.get(complete[start]) && complete[i] === complete[i - 1] + 1) continue;
+        if (i - start >= 3) {
+          const years = complete.slice(start, i), id = champion.get(complete[start]);
+          const mine = years.reduce((a, y) => a + (final.get(y).get(id) || 0), 0), all = years.reduce((a, y) => a + total(y), 0);
+          runs.push({ id, a: years[0], b: years[years.length - 1], n: years.length, share: mine / all * 100 });
+        }
+        start = i;
+      }
+      runs.sort((p, q) => q.share - p.share);
+      const top = runs.slice(0, 6);
+      const longest = runs.reduce((p, q) => (q.n > p.n ? q : p));
+      const name = (r) => team.get(r.id).name;
+      const lead = top[0];
+      document.getElementById("s4-title").textContent = longest === lead
+        ? `${name(lead)}'s ${span(lead.a, lead.b)} run was the most dominant: ${lead.share.toFixed(0)}% of the points.`
+        : `${name(longest)} won ${longest.n} titles in a row, but ${name(lead)} took a bigger share.`;
+      const color = (r) => TEAM[team.get(r.id).ref] || muted;
+      return new Chart(c4, { type: "bar",
+        data: { labels: top.map((r) => `${name(r)} ${span(r.a, r.b)} · ${r.n} titles`),
+                datasets: [{ data: top.map((r) => +r.share.toFixed(1)), backgroundColor: top.map(color), borderRadius: 4, barPercentage: 0.7 }] },
+        options: { indexAxis: "y",
+          scales: { x: { grid: { color: grid }, border: { display: false }, beginAtZero: true, max: 40, ticks: { callback: (v) => v + "%" } },
+                    y: { grid: { display: false }, border: { color: css("--line") }, ticks: { color: ink, font: { size: 15, weight: 550 } } } },
+          animation: { duration: 900, easing: "easeOutQuart", delay: (ctx) => ctx.type === "data" ? 250 + ctx.dataIndex * 160 : 0 } },
+        plugins: [{ id: "values", afterDatasetsDraw(chart) {
+          const g = chart.ctx; g.save(); g.font = "600 15px Inter"; g.fillStyle = ink; g.textBaseline = "middle";
+          chart.getDatasetMeta(0).data.forEach((bar, i) => { const p = bar.getProps(["x", "y"], false); g.fillText(top[i].share.toFixed(1) + "%", p.x + 10, p.y); });
+          g.restore(); } }] });
+    },
+
+    () => {
+      const y = latest, races = data.races.filter((r) => r.season === y).sort((a, b) => a.round - b.round);
+      const top = [...final.get(y)].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([id]) => id);
+      const wins = (id) => data.results.filter((r) => r.constructorId === id && race.get(r.raceId).season === y).reduce((a, r) => a + r.wins, 0);
+      const [c, second] = top, gap = final.get(y).get(c) - final.get(y).get(second);
+      document.getElementById("s5-eyebrow").textContent = `5 · The ${y} season`;
+      document.getElementById("s5-title").textContent =
+        `${team.get(c).name} won ${wins(c)} of ${races.length} Grands Prix and the title by ${Math.round(gap)} points.`;
+      const pts = new Map(top.map((id) => [id, new Map()]));
+      data.standings.forEach((s) => { if (pts.has(s.constructorId)) pts.get(s.constructorId).set(s.raceId, s.points); });
+      const color = (id) => TEAM[team.get(id).ref] || muted;
+      legend("l5", top.map((id) => [team.get(id).name, color(id)]));
+      return new Chart(c5, { type: "line",
+        data: { labels: races.map((r) => "R" + r.round), datasets: top.map((id) => ({ data: races.map((r) => pts.get(id).get(r.id) ?? null), borderColor: color(id), borderWidth: 2.5, pointRadius: 0, tension: 0.2 })) },
+        options: { scales: axes(), animation: progressive(3400, races.length) } });
+    },
+
+    () => {
+      // The real dashboard, moving slowly up from the season filter through its charts.
+      const doc = dash.contentWindow.document, k = dash.parentElement.clientWidth / 1240;
+      const from = Math.max(0, doc.querySelector(".views").getBoundingClientRect().top + dash.contentWindow.scrollY - 16);
+      const to = from + 450, ms = 4800;
+      const place = (y) => { dash.style.transform = `translateY(${-y * k}px) scale(${k})`; };
+      place(from);
+      const t0 = performance.now() + 700, shown = current;
+      const tick = (now) => {
+        if (current !== shown) return;
+        const t = Math.max(0, Math.min(1, (now - t0) / ms)), e = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+        place(from + (to - from) * e);
+        if (t < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+      return null;
+    },
+  ];
+
+  // The dashboard is laid out at a desktop width and as tall as its page, then scaled into its frame.
+  const dash = document.getElementById("dash");
+  dash.style.height = "3200px";
+
+  const slides = [...document.querySelectorAll(".slide")];
+  const dots = document.querySelector(".dots");
+  dots.innerHTML = slides.map(() => "<i></i>").join("");
+  let current = -1, chart = null;
+  window.show = (i) => {
+    i = (i + slides.length) % slides.length;
+    [].concat(chart || []).forEach((c) => c.destroy());
+    slides.forEach((s, k) => s.classList.toggle("on", k === i));
+    [...dots.children].forEach((d, k) => d.classList.toggle("on", k === i));
+    current = i;
+    chart = builders[i]();
+  };
+  addEventListener("keydown", (e) => { if (e.key === "ArrowRight") show(current + 1); if (e.key === "ArrowLeft") show(current - 1); });
+
+  // Ready once the fonts and the dashboard inside the frame have loaded.
+  await document.fonts.ready;
+  await new Promise((r) => {
+    const ok = () => { try { return !!dash.contentWindow.document.querySelector("#progress"); } catch { return false; } };
+    const wait = () => (ok() ? r() : setTimeout(wait, 100));
+    wait();
+  });
+  show(0);
+  window.tourReady = true;
+})();
+</script>
+</body>
+</html>

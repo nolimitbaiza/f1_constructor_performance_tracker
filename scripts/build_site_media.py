@@ -15,8 +15,8 @@ loop is a slideshow that cuts from season to season, just as picking a season do
 2024, the season the case study discusses, so the still is its first frame and the loop comes back
 round to it.
 
-The portfolio's home page card and the Pitwall case study (site/pitwall-case-study.html) both use
-these; publish.json lists them. After running it, copy the printed sizes into the width/height
+The Pitwall case study (site/pitwall-case-study.html) uses these (the home page card plays the
+tour from build_tour.py, and keeps the phone stills from here); publish.json lists them. After running it, copy the printed sizes into the width/height
 attributes of the Pitwall <source>, <img> and <video> elements in site/pitwall-case-study.html and in
 the portfolio repository's index.html.
 
