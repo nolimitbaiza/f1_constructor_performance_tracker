@@ -37,6 +37,10 @@
   <script>try{var t=localStorage.getItem("agt-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
   <link rel="preload" href="assets/fonts/inter-latin-var.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="assets/fonts/jetbrains-mono-latin-500.woff2" as="font" type="font/woff2" crossorigin>
+  <!-- Page transitions (the cross-fade between pages, styled in home.css): opted into here, inline, so
+       Chromium sees the opt-in from the very first frame. Read only from home.css, a slow stylesheet made
+       Chromium cancel the fade the previous page had started and report an InvalidStateError. -->
+  <style>@view-transition{navigation:auto}@media (prefers-reduced-motion:reduce){@view-transition{navigation:none}}</style>
   <link rel="stylesheet" href="assets/style.css?v=__BUILD__">
   <link rel="stylesheet" href="assets/home.css?v=__BUILD__">
 </head>
